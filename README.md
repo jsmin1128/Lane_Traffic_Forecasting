@@ -66,8 +66,7 @@ python scripts/evaluate.py stgcn
 
 ## 데이터 준비
 
-[AI Hub](https://www.aihub.or.kr)의 「AI 기반 신호 최적화를 위한 데이터」(2-058) 중 부천시 2022년 8~10월 31일치를 씁니다.
-재배포할 수 없어 저장소에는 없으며, 받은 원본을 Parquet으로 변환해 `data/raw/`에 둡니다 (약 3.5GB).
+[Google Drive](GOOGLE_DRIVE_LINK)에서 받아 `data/raw/`에 둡니다 (약 3.5GB):
 
 ```text
 data/raw/
@@ -79,13 +78,8 @@ data/raw/
 └── indicator.parquet/     # 구간별 평균 속도·지체 시간
 ```
 
-Parquet은 모두 route(교차로·구간) 13개 × 날짜 31일로 나뉘어 있습니다. 변환 코드는 `scripts/etl/`에 있습니다:
-
-```bash
-python scripts/etl/etl_od.py <AI Hub 교통량데이터(기종점교통량기반) 폴더>   # → data/raw/od.parquet
-```
-
-`net/`은 AI Hub 네트워크데이터를 복사하고 도로망 파일 이름만 `1200012n.net.xml` → `bucheon.net.xml`로 바꾼 것입니다.
+[AI Hub](https://www.aihub.or.kr)의 「AI 기반 신호 최적화를 위한 데이터」(2-058) 중 부천시 2022년 8~10월 31일치를
+Parquet으로 변환한 것입니다. 변환 코드는 `scripts/etl/`에 있습니다.
 
 ## 전처리
 
