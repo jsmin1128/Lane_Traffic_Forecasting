@@ -3,7 +3,7 @@
 """
 visualize_pooled_vs_actual_vehicle_counts_by_slot.py
 
-PooledResSTGCN 모델이 예측한 채널 0~3 (차량 대기수)
+STGCNSegment 모델이 예측한 채널 0~3 (차량 대기수)
 과 실제 값을 5분 단위 슬롯별로 합산해 비교 시각화합니다.
 
 Usage:
@@ -38,7 +38,7 @@ else:
 # 음수 기호 깨짐 방지
 plt.rcParams['axes.unicode_minus'] = False
 
-from model.pooled_residual_stgcn import PooledResSTGCN
+from model.stgcn_segment import STGCNSegment
 
 
 def parse_args():
@@ -59,7 +59,7 @@ def load_model(ckpt_path, cluster_map_path, device):
     cluster_id = torch.from_numpy(cluster_np).long().to(device)
     in_c = ckpt['model_state']['stgcn.layer1.temp1.weight'].shape[1]
     hidden_lstm = ckpt['model_state']['clstm.pre_fc.weight'].shape[0]
-    model = PooledResSTGCN(
+    model = STGCNSegment(
         in_c=in_c,
         out_c=8,
         num_nodes=A.size(0),

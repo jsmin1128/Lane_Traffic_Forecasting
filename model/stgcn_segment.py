@@ -125,9 +125,9 @@ def scatter_pool(delta_c: torch.Tensor, cluster_masks: torch.Tensor) -> torch.Te
             # Actually: delta_c[:,k,:] shape (B,C), unsqueeze to (B,C,1) then broadcast to mask.sum()
     return out
 
-class PooledResSTGCN(nn.Module):
+class STGCNSegment(nn.Module):
     """
-    ST-GCN + NetVLAD Soft Pooling + Cluster-LSTM 보정
+    ST-GCN + 세그먼트 단위 보정 (NetVLAD Soft Pooling + Cluster-LSTM)
 
     전체 파이프라인:
     1) ST-GCN Backbone으로 기본 단기 예측 수행 (단일 스텝)

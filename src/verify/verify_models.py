@@ -3,7 +3,7 @@
 """
 verify_models.py
 
-목적: 기본 LSTM, ST-GCN, PooledResSTGCN 모델의 Forward PASS를
+목적: 기본 LSTM, ST-GCN, STGCNSegment 모델의 Forward PASS를
 더미 입력으로 검증합니다.
 """
 
@@ -56,23 +56,23 @@ with torch.no_grad():
 print("ST-GCN Forward PASS 성공!  출력 shape:", y_stgcn.shape)  # 예상: (B, 8, N)
 
 # ─────────────────────────────────────────────────────────────────────────
-# 3) Pooled Residual ST-GCN 모델
+# 3) ST-GCN + Segment 모델
 # ─────────────────────────────────────────────────────────────────────────
-from model.pooled_residual_stgcn import PooledResSTGCN
+from model.stgcn_segment import STGCNSegment
 
-C_pool = C_traffic + C_flag
-x_pool = torch.randn(B, C_pool, T, N)
+C_seg = C_traffic + C_flag
+x_seg = torch.randn(B, C_seg, T, N)
 residual_seq = torch.randn(B, 1, C_traffic, N)   # (B, horizon, C, N)
 cluster_id = torch.zeros(N, dtype=torch.long)
 
-pooled_model = PooledResSTGCN(
+segment_model = STGCNSegment(
     in_c=C_traffic,   # forward()가 마지막 플래그 채널을 떼고 ST-GCN에 넘김
     out_c=C_traffic,
     num_nodes=N,
     A=A_dummy,
     cluster_id=cluster_id
 )
-pooled_model.eval()
+segment_model.eval()
 with torch.no_grad():
-    y_pooled = pooled_model(x_pool, residual_seq=residual_seq)
-print("PooledResSTGCN Forward PASS 성공!  출력 shape:", y_pooled.shape)  # 예상: (B, 8, 1, N)
+    y_segment = segment_model(x_seg, residual_seq=residual_seq)
+print("STGCNSegment Forward PASS 성공!  출력 shape:", y_segment.shape)  # 예상: (B, 8, 1, N)

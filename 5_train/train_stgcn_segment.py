@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-train_pooled.py  (revised)
--------------------------
-• **PooledResSTGCN** 단독 학습 (multi-step, default horizon=1)
+train_stgcn_segment.py
+----------------------
+• **STGCNSegment** 단독 학습 (multi-step, default horizon=1)
 • Epoch마다 **MSE + MAE** 기록 → `ck_pooled/metrics.csv`
 • **5 epoch마다 또는 Val MSE 향상 시** 체크포인트를 `ck_pooled/`에 저장
 • 학습曲선 PNG + 로그 NPZ 모두 같은 폴더에 저장
 
 사용 예)
-    python 5_train/train_pooled.py \
+    python 5_train/train_stgcn_segment.py \
         --epochs 40 --batch 8 --lr 5e-4 \
         --hidden_lstm 256 --residual_steps 12 \
         --cluster_map processed/graph/lane_to_segment_id_by_edge.npy
@@ -41,13 +41,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 from data_loader import get_dataloaders
-from model.pooled_residual_stgcn import PooledResSTGCN
+from model.stgcn_segment import STGCNSegment
 
 # ─────────────────────────────────────────────────────────────
 # CLI
 # ─────────────────────────────────────────────────────────────
 
-parser = argparse.ArgumentParser(description="Train PooledResSTGCN: residual history -> one-step prediction")
+parser = argparse.ArgumentParser(description="Train STGCNSegment: residual history -> one-step prediction")
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch', type=int, default=8)
 parser.add_argument('--lr', type=float, default=5e-4)
@@ -128,14 +128,14 @@ def main():
 def train_full(out_dir: Path, csv_path: Path):
     global train_loader, val_loader, num_nodes, C_in, C_out, A, cluster_id, num_clusters, args
 
-    model = PooledResSTGCN(in_c=C_in - 1,
-                           out_c=C_out,
-                           num_nodes=num_nodes,
-                           A=A,
-                           cluster_id=cluster_id,
-                           horizon=args.horizon,
-                           K=num_clusters,
-                           hidden_lstm=args.hidden_lstm).to(device)
+    model = STGCNSegment(in_c=C_in - 1,
+                         out_c=C_out,
+                         num_nodes=num_nodes,
+                         A=A,
+                         cluster_id=cluster_id,
+                         horizon=args.horizon,
+                         K=num_clusters,
+                         hidden_lstm=args.hidden_lstm).to(device)
 
     mse_criterion = nn.MSELoss()
     mae_criterion = nn.L1Loss()

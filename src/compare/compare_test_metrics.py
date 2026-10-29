@@ -3,7 +3,7 @@
 """
 compute_and_compare_test_metrics.py
 
-1) Load best checkpoints for each model (LSTM, ST-GCN, PooledResSTGCN)
+1) Load best checkpoints for each model (LSTM, ST-GCN, STGCNSegment)
 2) Run each on the test set, compute MAE, RMSE, MAPE, R²
 3) Save results to CSV and plot a grouped bar chart
 
@@ -32,13 +32,13 @@ import torch.nn as nn
 from data_loader import get_dataloaders
 from model.lstm_model import BasicLSTM
 from model.stgcn_model import STGCN
-from model.pooled_residual_stgcn import PooledResSTGCN
+from model.stgcn_segment import STGCNSegment
 
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--lstm_ckpt',    type=str, required=True,  help='Path to LSTM checkpoint')
     p.add_argument('--stgcn_ckpt',   type=str, required=True,  help='Path to ST-GCN checkpoint')
-    p.add_argument('--pooled_ckpt',  type=str, required=True,  help='Path to PooledResSTGCN checkpoint')
+    p.add_argument('--pooled_ckpt',  type=str, required=True,  help='Path to STGCNSegment checkpoint')
     p.add_argument('--batch',        type=int, default=8,      help='Test batch size')
     p.add_argument('--out_csv',      type=str, default='test_metrics.csv', help='Output CSV file')
     p.add_argument('--out_png',      type=str, default='performance_comparison.png', help='Output PNG file')
@@ -104,7 +104,7 @@ def evaluate_pooled(ckpt_path, test_loader, device):
     A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
     cluster_id = torch.from_numpy(np.load('processed/graph/lane_to_segment_id_by_edge.npy')).long().to(device)
     num_nodes = A.size(0)
-    model = PooledResSTGCN(
+    model = STGCNSegment(
         in_c=ckpt['model_state']['stgcn.layer1.temp1.weight'].shape[1],
         out_c=8,
         num_nodes=num_nodes,
@@ -151,7 +151,7 @@ def main():
     for name, fn, ckpt in [
         ('LSTM',      evaluate_lstm,   args.lstm_ckpt),
         ('ST-GCN',    evaluate_stgcn,  args.stgcn_ckpt),
-        ('ST-GCN + LSTM', evaluate_pooled, args.pooled_ckpt)
+        ('ST-GCN + Segment', evaluate_pooled, args.pooled_ckpt)
     ]:
         print(f"Evaluating {name} …")
         y_true, y_pred = fn(ckpt, test_loader, device)
