@@ -16,5 +16,4 @@ tqdm==4.70.0           # 학습 진행 표시
 # 선택 기능에만 필요
 dask==2026.7.1         # scripts/etl, scripts/check/check_parquet.py
 xmltodict==1.0.4       # scripts/etl
-sumolib==1.27.1        # scripts/build_sumo.py
 networkx==3.6.1        # scripts/check/check_graph.py

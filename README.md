@@ -52,7 +52,6 @@ python scripts/evaluate.py stgcn
 │   ├── build_dataset.py           # 전처리 data/raw → processed/
 │   ├── train.py                   # 학습 (train.py <모델명>)
 │   ├── evaluate.py                # 평가 (evaluate.py <모델명>)
-│   ├── build_sumo.py              # (선택) SUMO 시뮬레이션 입력 만들기
 │   ├── etl/                       # AI Hub 원본 → data/raw 변환 (기록용)
 │   └── check/                     # 점검 도구 (parquet, 그래프, 세그먼트, 텐서, 윈도우, 데이터 로더, 모델)
 │
@@ -60,7 +59,7 @@ python scripts/evaluate.py stgcn
 │   ├── config.py                  # ★ 경로, 날짜 31일, 상수
 │   ├── data.py                    # Dataset, get_dataloaders (70/15/15 분할)
 │   ├── models/                    # lstm.py, stgcn.py, stgcn_segment.py
-│   ├── preprocess/                # graph, segments, tensors, windows, sumo
+│   ├── preprocess/                # graph, segments, tensors, windows
 │   ├── training.py                # 공통 학습 루프, 모델별 기본 설정 (DEFAULTS)
 │   └── evaluation.py              # 테스트 지표, 그래프
 │
@@ -77,12 +76,14 @@ route(교차로·구간) 13개 × 날짜 31일로 나뉘어 있습니다.
 ```text
 data/raw/
 ├── od.parquet/            # 기종점 교통량: 차량별 시각·위치·속도·차종·차로·대기 여부   → 텐서
-├── turn.parquet/          # 회전 교통량: 구간 간 차종별 통과 대수                      → SUMO
-├── signal_xml.parquet/    # 신호 현시 계획                                             → SUMO
+├── turn.parquet/          # 회전 교통량: 구간 간 차종별 통과 대수
+├── signal_xml.parquet/    # 신호 현시 계획
 ├── signal_csv.parquet/    # 신호 상태 기록
 ├── indicator.parquet/     # 구간별 평균 속도·지체 시간·통행 시간
-└── net/                   # SUMO 도로망 bucheon.net.xml, 차종 정의 exp.rou.xml 등      → 그래프, SUMO
+└── net/                   # SUMO 도로망 bucheon.net.xml, 차종 정의 exp.rou.xml 등      → 그래프·세그먼트
 ```
+
+학습에는 `od.parquet`과 `net/bucheon.net.xml`만 씁니다. 나머지는 원본 그대로 보관합니다.
 
 AI Hub 데이터는 재배포할 수 없어 git에 올리지 않습니다. 따로 보관하세요. 변환에 쓴 코드는 `scripts/etl/`에
 있고, AI Hub 원본 폴더를 인자로 받습니다 (예: `python scripts/etl/etl_od.py <교통량데이터(기종점교통량기반) 폴더>`).
@@ -194,13 +195,3 @@ python scripts/check/check_segments.py                # 세그먼트별 차로 �
 python scripts/check/check_tensors.py                 # 날짜별 텐서 통계 CSV
 python scripts/check/check_parquet.py data/raw/turn.parquet   # Parquet 메타데이터·샘플
 ```
-
-## (선택) SUMO 시뮬레이션 입력
-
-```bash
-python scripts/build_sumo.py                          # → processed/sumo/<날짜>/ (31일 약 4분)
-python scripts/build_sumo.py --dates 20220810
-```
-
-회전 교통량으로 만든 차량 흐름, 차로별 검지기, 신호 현시, 도로망 복사본과 `bucheon.sumocfg`를 날짜별로 만듭니다.
-학습·평가에는 쓰지 않습니다.
