@@ -9,10 +9,11 @@ __pycache__/
 .vscode/
 .claude/
 
-# 데이터 (로컬 전용, 커밋하지 않음)
+# 데이터·학습 결과 (로컬 전용, 커밋하지 않음)
 data/raw/*
 !data/raw/.gitkeep
 processed/
+outputs/
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos

@@ -5,8 +5,8 @@ train_lstm.py  (revised)
 -----------------------
 • BasicLSTM 단독 학습 스크립트
 • 9-채널 입력(Queue4+Speed4+holiday) → 다음 8-채널 한스텝 예측
-• 성능 지표(MSE, MAE) 매 epoch CSV 기록
-• 5 epoch마다 or best-val 향상 시 체크포인트를 ck_lstm/ 에 저장
+• 성능 지표(MSE, MAE) 매 epoch outputs/lstm/metrics.csv 에 기록
+• 5 epoch마다 or best-val 향상 시 체크포인트를 outputs/lstm/checkpoints/ 에 저장
 
 사용 예)
     python 5_train/train_lstm.py \
@@ -103,9 +103,10 @@ def main():
                  else optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5))
 
     # Output dirs
-    ckpt_dir = 'ck_lstm'
+    out_dir = os.path.join('outputs', 'lstm')
+    ckpt_dir = os.path.join(out_dir, 'checkpoints')
     os.makedirs(ckpt_dir, exist_ok=True)
-    csv_path = os.path.join(ckpt_dir, 'metrics.csv')
+    csv_path = os.path.join(out_dir, 'metrics.csv')
     with open(csv_path, 'w') as f:
         f.write('epoch,train_mse,train_mae,val_mse,val_mae\n')
 

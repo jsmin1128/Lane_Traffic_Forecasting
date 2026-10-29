@@ -4,8 +4,8 @@
 train_stgcn.py  (revised)
 ------------------------
 • 전통적 ST-GCN 단독 학습 스크립트 (single-step, horizon=1)
-• 매 epoch마다 **MSE + MAE** 두 지표를 CSV 기록
-• 5 epoch마다 **또는** Val MSE 갱신 시 체크포인트를 **ck_stgcn/** 에 저장
+• 매 epoch마다 **MSE + MAE** 두 지표를 outputs/stgcn/metrics.csv 에 기록
+• 5 epoch마다 **또는** Val MSE 갱신 시 체크포인트를 **outputs/stgcn/checkpoints/** 에 저장
 
 사용 예)
     python 5_train/train_stgcn.py \
@@ -103,9 +103,10 @@ def main():
                  else optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5))
 
     # Output dirs
-    ckpt_dir = 'ck_stgcn'
+    out_dir = os.path.join('outputs', 'stgcn')
+    ckpt_dir = os.path.join(out_dir, 'checkpoints')
     os.makedirs(ckpt_dir, exist_ok=True)
-    csv_path = os.path.join(ckpt_dir, 'metrics.csv')
+    csv_path = os.path.join(out_dir, 'metrics.csv')
     with open(csv_path, 'w') as f:
         f.write('epoch,train_mse,train_mae,val_mse,val_mae\n')
 

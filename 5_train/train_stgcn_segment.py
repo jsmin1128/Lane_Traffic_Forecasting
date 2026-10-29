@@ -4,9 +4,8 @@
 train_stgcn_segment.py
 ----------------------
 • **STGCNSegment** 단독 학습 (multi-step, default horizon=1)
-• Epoch마다 **MSE + MAE** 기록 → `ck_pooled/metrics.csv`
-• **5 epoch마다 또는 Val MSE 향상 시** 체크포인트를 `ck_pooled/`에 저장
-• 학습曲선 PNG + 로그 NPZ 모두 같은 폴더에 저장
+• Epoch마다 **MSE + MAE** 기록 → `outputs/stgcn_segment/metrics.csv`
+• **5 epoch마다 또는 Val MSE 향상 시** 체크포인트를 `outputs/stgcn_segment/checkpoints/`에 저장
 
 사용 예)
     python 5_train/train_stgcn_segment.py \
@@ -27,7 +26,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 # ─────────────────────────────────────────────────────────────
 # Device
@@ -102,24 +100,15 @@ def main():
     print(f"✔ Clusters {num_clusters} | Nodes {num_nodes} | Cin {C_in} | Cout {C_out} | Residual {residual_steps}")
 
     # Output dirs ---------------------------------------------------------
-    out_dir = Path('ck_pooled')
-    out_dir.mkdir(exist_ok=True)
+    out_dir = Path('outputs') / 'stgcn_segment'
+    (out_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / 'metrics.csv'
     with open(csv_path, 'w') as f:
         f.write('epoch,train_mse,train_mae,val_mse,val_mae\n')
 
     # Train ---------------------------------------------------------------
-    train_mse_hist, val_mse_hist = train_full(out_dir, csv_path)
-
-    # Plot ----------------------------------------------------------------
-    np.savez(out_dir / 'losses.npz', train=np.array(train_mse_hist), val=np.array(val_mse_hist))
-    plt.figure(figsize=(6,4))
-    epochs_arr = np.arange(1, len(train_mse_hist)+1)
-    plt.plot(epochs_arr, train_mse_hist, label='train MSE')
-    plt.plot(epochs_arr, val_mse_hist, label='val MSE')
-    plt.xlabel('Epoch'); plt.ylabel('MSE'); plt.legend(); plt.tight_layout()
-    plt.savefig(out_dir / 'loss_curve.png', dpi=150)
-    print("▶ Training complete. Outputs under ck_pooled/")
+    train_full(out_dir, csv_path)
+    print("▶ Training complete. Outputs under outputs/stgcn_segment/")
 
 # ------------------------------------------------------------------------
 # Training routine
@@ -187,7 +176,7 @@ def train_full(out_dir: Path, csv_path: Path):
 
         # Checkpoint ------------------------------------------------------
         if ep % 5 == 0 or val_mse < best_val:
-            ckpt_path = out_dir / f"pooled_ep{ep:03d}.pt"
+            ckpt_path = out_dir / 'checkpoints' / f"stgcn_segment_ep{ep:03d}.pt"
             save_ckpt(ckpt_path, ep, model, val_mse, val_mae)
             print(f"▶ Saved checkpoint: {ckpt_path}")
         if val_mse < best_val:

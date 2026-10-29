@@ -1,3 +1,0 @@
-LSTM total inference time (s): 0.208
-STGCN total inference time (s): 0.573
-RESSTGCN total inference time (s): 0.487
