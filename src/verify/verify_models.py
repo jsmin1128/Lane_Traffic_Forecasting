@@ -3,7 +3,7 @@
 """
 verify_models.py
 
-목적: 기본 LSTM, ST-GCN, GatedFusionSTGCN, PooledResSTGCN 모델의 Forward PASS를
+목적: 기본 LSTM, ST-GCN, PooledResSTGCN 모델의 Forward PASS를
 더미 입력으로 검증합니다.
 """
 
@@ -56,42 +56,17 @@ with torch.no_grad():
 print("ST-GCN Forward PASS 성공!  출력 shape:", y_stgcn.shape)  # 예상: (B, 8, N)
 
 # ─────────────────────────────────────────────────────────────────────────
-# 3) Gated Fusion ST-GCN 모델
-# ─────────────────────────────────────────────────────────────────────────
-from model.gated_fusion_stgcn import GatedFusionSTGCN
-
-C_gated = C_traffic + C_flag
-x_gated = torch.randn(B, C_gated, T, N)
-holiday_flag = torch.randint(0, 2, (B,))
-ema_r = torch.randn(B, T, C_traffic, N)
-
-gated_model = GatedFusionSTGCN(
-    in_channels=C_gated,
-    hidden1=64,
-    hidden2=32,
-    out_channels=C_traffic,
-    num_nodes=N,
-    A=A_dummy
-)
-gated_model.eval()
-with torch.no_grad():
-    # GatedFusionSTGCN.forward()는 ema_r 인자를 받지 않으므로, 
-        # 주말 플래그만 넘겨 호출합니다.
-        # LongTensor → FloatTensor 변환
-        y_gated = gated_model(x_gated, holiday_flag.float())
-print("GatedFusionSTGCN Forward PASS 성공!  출력 shape:", y_gated.shape)  # 예상: (B, 8, N)
-
-# ─────────────────────────────────────────────────────────────────────────
-# 4) Pooled Residual ST-GCN 모델
+# 3) Pooled Residual ST-GCN 모델
 # ─────────────────────────────────────────────────────────────────────────
 from model.pooled_residual_stgcn import PooledResSTGCN
 
 C_pool = C_traffic + C_flag
 x_pool = torch.randn(B, C_pool, T, N)
+residual_seq = torch.randn(B, 1, C_traffic, N)   # (B, horizon, C, N)
 cluster_id = torch.zeros(N, dtype=torch.long)
 
 pooled_model = PooledResSTGCN(
-    in_c=C_pool,
+    in_c=C_traffic,   # forward()가 마지막 플래그 채널을 떼고 ST-GCN에 넘김
     out_c=C_traffic,
     num_nodes=N,
     A=A_dummy,
@@ -99,5 +74,5 @@ pooled_model = PooledResSTGCN(
 )
 pooled_model.eval()
 with torch.no_grad():
-    y_pooled = pooled_model(x_pool, ema_r=ema_r, weekend_flag=holiday_flag)
-print("PooledResSTGCN Forward PASS 성공!  출력 shape:", y_pooled.shape)  # 예상: (B, 8, N)
+    y_pooled = pooled_model(x_pool, residual_seq=residual_seq)
+print("PooledResSTGCN Forward PASS 성공!  출력 shape:", y_pooled.shape)  # 예상: (B, 8, 1, N)
