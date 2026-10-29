@@ -14,6 +14,9 @@ data/raw/*
 !data/raw/.gitkeep
 processed/
 outputs/
+notebooks/*.npy
+notebooks/*.pkl
+.ipynb_checkpoints/
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos
