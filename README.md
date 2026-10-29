@@ -66,7 +66,7 @@ python scripts/evaluate.py stgcn
 
 ## 데이터 준비
 
-[Google Drive](https://drive.google.com/file/d/1kVC92ZN-4AOmYMBl6JRvECfy7RZVrzdB/view?usp=drive_link)에서 `Lane_Traffic_Forecasting.zip`(약 3.2GB)을 받아
+[Google Drive](https://drive.google.com/file/d/1kVC92ZN-4AOmYMBl6JRvECfy7RZVrzdB/view?usp=sharing)에서 `Lane_Traffic_Forecasting.zip`(약 3.2GB)을 받아
 `data/raw/`에 압축을 풉니다:
 
 ```bash
