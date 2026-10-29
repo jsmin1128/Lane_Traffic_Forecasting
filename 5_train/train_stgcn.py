@@ -82,7 +82,7 @@ def main():
     train_loader, val_loader, _ = get_dataloaders(batch_size=args.batch)
 
     # Adjacency
-    A = torch.from_numpy(np.load(project_root / '3_tensor' / 'adjacency' / 'A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load(project_root / 'processed' / 'graph' / 'A_lane.npy')).float().to(device)
     num_nodes = A.size(0)
 
     # Model

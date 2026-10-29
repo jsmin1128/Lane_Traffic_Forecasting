@@ -4,21 +4,21 @@
 generate_tensors.py
 
 여러 날짜에 대해 입력 텐서(input_tensor)와 정규화된 텐서(normalized_tensor)를
-자동으로 생성하여 '3_tensor/' 폴더에 저장하는 스크립트입니다.
+자동으로 생성하여 'processed/tensor/' 폴더에 저장하는 스크립트입니다.
 
 사용법:
     python generate_tensors.py
 
 필요 경로:
-    1) Parquet 원본 데이터: '1_lake/od.parquet'
-    2) 전체 lane ID 목록: '3_tensor/adjacency/lanes.txt'
-    3) 결과 저장 폴더: '3_tensor/tensors/' (없으면 자동 생성)
+    1) Parquet 원본 데이터: 'data/raw/od.parquet'
+    2) 전체 lane ID 목록: 'processed/graph/lanes.txt'
+    3) 결과 저장 폴더: 'processed/tensor/<날짜>/' (없으면 자동 생성)
 
 출력 파일 예시:
-    - 3_tensor/tensors/input_tensor_20220810.npy
-    - 3_tensor/tensors/input_tensor_20220810.pkl
-    - 3_tensor/tensors/normalized_tensor_20220810.npy
-    - 3_tensor/tensors/normalized_tensor_20220810.pkl
+    - processed/tensor/20220810/input_tensor_20220810.npy
+    - processed/tensor/20220810/input_tensor_20220810.pkl
+    - processed/tensor/20220810/normalized_tensor_20220810.npy
+    - processed/tensor/20220810/normalized_tensor_20220810.pkl
 """
 
 import os
@@ -41,9 +41,9 @@ DATE_LIST = [
 ]
 
 # 2) 경로 설정
-OD_PARQUET_PATH = '1_lake/od.parquet'
-LANE_IDS_PATH   = '3_tensor/adjacency/lanes.txt'
-OUTPUT_DIR      = '3_tensor/tensors/'
+OD_PARQUET_PATH = 'data/raw/od.parquet'
+LANE_IDS_PATH   = 'processed/graph/lanes.txt'
+OUTPUT_DIR      = 'processed/tensor'
 # # 출력 폴더가 없으면 생성
 # os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -67,7 +67,7 @@ VHC_TYP_MAPPING = {
 }
 
 def process_date(date: int):
-    date_dir = os.path.join('3_tensor', str(date))
+    date_dir = os.path.join(OUTPUT_DIR, str(date))
     os.makedirs(date_dir, exist_ok=True)
     """
     주어진 날짜(date, YYYYMMDD)별로:
@@ -262,4 +262,4 @@ if __name__ == '__main__':
     for dt in DATE_LIST:
         process_date(dt)
 
-    print("\nAll dates processed. Tensors saved in per-date folders under 3_tensor/")
+    print("\nAll dates processed. Tensors saved in per-date folders under processed/tensor/")

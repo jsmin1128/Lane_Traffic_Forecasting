@@ -3,9 +3,9 @@
 """
 inspect_parquet.py
 
-1_lake/turn.parquet 또는 다른 Parquet 디렉터리를 인자로 받아
+data/raw/turn.parquet 또는 다른 Parquet 디렉터리를 인자로 받아
 메타데이터와 샘플을 요약 출력합니다.
-usage: python inspect_parquet.py 1_lake/turn.parquet
+usage: python inspect_parquet.py data/raw/turn.parquet
 """
 import sys
 from pathlib import Path

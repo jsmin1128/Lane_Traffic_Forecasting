@@ -9,18 +9,18 @@ from datetime import datetime, timedelta
 import sumolib
 
 def build_sumoprep(
-    lake_dir: str = "1_lake",
-    prep_dir: str = "2_sumoprep",
+    lake_dir: str = "data/raw",
+    prep_dir: str = "processed/sumo",
     turn_parquet: str = "turn.parquet",
     signal_parquet: str = "signal_xml.parquet",
-    net_dir: str = "1_lake/net",
+    net_dir: str = "data/raw/net",
     net_file: str = "bucheon.net.xml",
     exp_route: str = "exp.rou.xml"
 ):
     """
     Generate SUMO prep files: demand.rou.xml, detectors.add.xml,
     edgeGroups.add.xml, tls_plan.tll.xml, sim_conf.sumocfg
-    for each date folder under 2_sumoprep.
+    for each date folder under processed/sumo.
     """
     # Ensure directories are relative to project root, not script location
     base_dir = Path(__file__).resolve().parents[2]
@@ -33,7 +33,7 @@ def build_sumoprep(
     turn_pq = lake / turn_parquet
     sig_pq = lake / signal_parquet
     net_src = lake / "net" / net_file
-    # 실제 exp.rou.xml은 1_lake/net 디렉토리에 있으므로 lake 디렉토리를 기준으로 복사 경로 지정
+    # 실제 exp.rou.xml은 data/raw/net 디렉토리에 있으므로 lake 디렉토리를 기준으로 복사 경로 지정
     exp_src = lake / "net" / exp_route
 
     # generate all dates from 20220810 to 20221031

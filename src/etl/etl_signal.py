@@ -21,8 +21,8 @@ from dask import delayed
 from dask.diagnostics import ProgressBar
 
 RAW_DIR     = "0_raw/신호데이터"
-OUT_DIR_CSV = "1_lake/signal_csv.parquet"
-OUT_DIR_XML = "1_lake/signal_xml.parquet"
+OUT_DIR_CSV = "data/raw/signal_csv.parquet"
+OUT_DIR_XML = "data/raw/signal_xml.parquet"
 
 # ────────────────────────────────────────────────────────
 # 1) 전체 파일 목록 수집 & Mac 리소스포크(. _*) 필터링

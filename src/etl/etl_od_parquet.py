@@ -20,7 +20,7 @@ from dask import delayed
 from dask.diagnostics import ProgressBar
 
 RAW_DIR   = "0_raw/교통량데이터(기종점교통량기반)"
-OUT_DIR   = "1_lake/od.parquet"
+OUT_DIR   = "data/raw/od.parquet"
 GLOB_PAT  = f"{RAW_DIR}/**/*.csv"
 
 # 제어문자/널 제거용 정규식

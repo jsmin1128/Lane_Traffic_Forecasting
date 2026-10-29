@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 """
-3_tensor/adjacency의 인접행렬 A.npy와 lanes.txt를 검사 및 시각화합니다.
+processed/graph의 인접행렬 A_lane.npy와 lanes.txt를 검사 및 시각화합니다.
 - 노드 수, 엣지 수 출력
 - lanes_list.txt, lane_pairs.txt 생성
 - NetworkX로 그래프 연결 상태 플롯

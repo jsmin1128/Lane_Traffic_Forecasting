@@ -38,7 +38,7 @@ parser.add_argument(
 parser.add_argument(
     '--cluster_map',
     type=str,
-    default='lane_to_segment_id_by_edge.npy',
+    default='processed/graph/lane_to_segment_id_by_edge.npy',
     help='lane→segment ID 매핑(.npy)'
 )
 
@@ -80,7 +80,7 @@ print(f"✔ Cluster mapping: nodes={num_nodes}, clusters={num_clusters}")
 # -----------------------------
 
 # adjacency matrix
-dummy = np.load('3_tensor/adjacency/A_lane.npy')
+dummy = np.load('processed/graph/A_lane.npy')
 A = torch.from_numpy(dummy).float().to(device)
 
 # Make results dir

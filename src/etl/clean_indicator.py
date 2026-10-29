@@ -1,11 +1,11 @@
-# src/etl/rewrite_signal_xml.py
+# src/etl/clean_indicator.py
 import os
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
 
 # 원본/목표 디렉토리
-SRC = os.path.join('1_lake', 'indicator.parquet')
-DST = os.path.join('1_lake', 'indicator_clean.parquet')
+SRC = os.path.join('data', 'raw', 'indicator.parquet')
+DST = os.path.join('processed', 'indicator_clean.parquet')
 
 # 1) Parquet 로드(모든 파티션 읽음)
 df = dd.read_parquet(SRC)

@@ -39,9 +39,9 @@ def parse_args():
     p.add_argument('--lstm_ckpt',   required=True, help='LSTM checkpoint path')
     p.add_argument('--stgcn_ckpt',  required=True, help='ST-GCN checkpoint path')
     p.add_argument('--pooled_ckpt', required=True, help='PooledResSTGCN checkpoint path')
-    p.add_argument('--all_x',        default='3_tensor/windows/all_X.npy', help='all_X.npy file path')
-    p.add_argument('--all_y',        default='3_tensor/windows/all_Y.npy', help='all_Y.npy file path')
-    p.add_argument('--all_date',     default='3_tensor/windows/all_DATE.npy', help='all_DATE.npy file path')
+    p.add_argument('--all_x',        default='processed/windows/all_X.npy', help='all_X.npy file path')
+    p.add_argument('--all_y',        default='processed/windows/all_Y.npy', help='all_Y.npy file path')
+    p.add_argument('--all_date',     default='processed/windows/all_DATE.npy', help='all_DATE.npy file path')
     # Removed unused --horizon argument
     p.add_argument('--metric',       choices=['mae','rmse'], default='rmse')
     p.add_argument('--batch',        type=int, default=1024, help='평가 batch size')
@@ -55,12 +55,12 @@ def load_model(model_type, ckpt_path, num_nodes, device):
         hidden = ckpt['lstm.weight_ih_l0'].shape[0]//4
         model = BasicLSTM(num_nodes,8,hidden).to(device)
     elif model_type=='ST-GCN':
-        A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+        A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
         hidden = ckpt['layer1.temp1.weight'].shape[0]
         model = STGCN(9,hidden,8,num_nodes,A,1).to(device)
     else:
-        A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
-        cid = torch.from_numpy(np.load('segment/lane_to_segment_id_by_edge.npy')).long().to(device)
+        A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
+        cid = torch.from_numpy(np.load('processed/graph/lane_to_segment_id_by_edge.npy')).long().to(device)
         in_c = ckpt['stgcn.layer1.temp1.weight'].shape[1]
         hidden_lstm = ckpt['clstm.pre_fc.weight'].shape[0]
         model = PooledResSTGCN(in_c,8,num_nodes,A,cid, cid.max().item()+1, hidden_lstm,1).to(device)

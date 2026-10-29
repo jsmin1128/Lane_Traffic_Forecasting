@@ -10,9 +10,9 @@ lanes.txt 순서대로 lane→segment(edge) ID 배열을 생성합니다.
 
 Usage:
   python cluster_by_edge.py \
-    --net bucheon.net.xml \
-    --lanes lanes.txt \
-    --output lane_to_segment_id_by_edge.npy \
+    --net data/raw/net/bucheon.net.xml \
+    --lanes processed/graph/lanes.txt \
+    --output processed/graph/lane_to_segment_id_by_edge.npy \
     [--merge_window N]
 
 옵션:

@@ -159,7 +159,7 @@ def main():
     train_loader, val_loader, test_loader = get_dataloaders(batch_size=BATCH)
     sample_x, _, *_ = next(iter(train_loader))
     num_nodes = sample_x.shape[-1]
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(DEVICE)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(DEVICE)
 
     os.makedirs('results', exist_ok=True)
     criterion = nn.MSELoss()

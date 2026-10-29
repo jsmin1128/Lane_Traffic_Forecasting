@@ -35,7 +35,7 @@ DATE_LIST = [
 ]
 
 # ② 기본 디렉토리 (날짜별 폴더가 위치)
-BASE_DIR = '3_tensor'
+BASE_DIR = 'processed/tensor'
 
 # ③ 슬라이딩 윈도우 파라미터
 WINDOW_SIZE      = 12   # 과거 12스텝 (1시간)
@@ -44,7 +44,7 @@ INPUT_CHANNELS   = 9    # input 채널 수 (queue+spd=8 + weekend_flag=1)
 OUTPUT_CHANNELS  = 8    # 예측 대상 채널 수 (queue+spd 8개)
 
 # ④ 결과 저장 디렉토리 (없으면 생성)
-SAVE_DIR = os.path.join(BASE_DIR, 'windows')
+SAVE_DIR = os.path.join('processed', 'windows')
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 # ┌──────────────────────────────────────────────────────────────────────────┐

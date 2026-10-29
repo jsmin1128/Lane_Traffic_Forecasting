@@ -25,7 +25,7 @@ DATE_LIST = [
     20220926,20220928,20220930,20221001,20221002,
     20221026,20221027,20221028,20221030,20221031
 ]
-BASE_DIR = '3_tensor'
+BASE_DIR = 'processed/tensor'
 FIELDS = ['input_tensor', 'normalized_tensor']
 
 for DATE in DATE_LIST:

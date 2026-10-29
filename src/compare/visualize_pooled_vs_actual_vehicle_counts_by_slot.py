@@ -9,8 +9,8 @@ PooledResSTGCN 모델이 예측한 채널 0~3 (차량 대기수)
 Usage:
     python visualize_pooled_vs_actual_vehicle_counts_by_slot.py \
         --pooled_ckpt ck_pooled/pooled_ep040.pt \
-        --cluster_map segment/lane_to_segment_id_by_edge.npy \
-        --windows_dir 3_tensor/windows \
+        --cluster_map processed/graph/lane_to_segment_id_by_edge.npy \
+        --windows_dir processed/windows \
         --batch 64 \
         --out_png pooled_vs_actual_counts.png \
         --dpi 150
@@ -45,7 +45,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--pooled_ckpt', required=True)
     p.add_argument('--cluster_map', required=True)
-    p.add_argument('--windows_dir', default='3_tensor/windows')
+    p.add_argument('--windows_dir', default='processed/windows')
     p.add_argument('--batch', type=int, default=64)
     p.add_argument('--out_png', default='pooled_vs_actual_counts.png')
     p.add_argument('--dpi', type=int, default=150)
@@ -54,7 +54,7 @@ def parse_args():
 
 def load_model(ckpt_path, cluster_map_path, device):
     ckpt = torch.load(ckpt_path, map_location=device)
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
     cluster_np = np.load(cluster_map_path)
     cluster_id = torch.from_numpy(cluster_np).long().to(device)
     in_c = ckpt['model_state']['stgcn.layer1.temp1.weight'].shape[1]
@@ -90,7 +90,7 @@ def main():
     date_stats = {}
     for d in dates:
         # load raw input tensor with flag (channels 0-7 raw queue+spd, 8 flag)
-        raw_path = os.path.join('3_tensor', str(int(d)), f'input_tensor_{int(d)}_with_flag.npy')
+        raw_path = os.path.join('processed', 'tensor', str(int(d)), f'input_tensor_{int(d)}_with_flag.npy')
         raw = np.load(raw_path)  # shape=(288,1370,9)
         # channels 0-7 are raw values
         ch_data = raw[:, :, :8]

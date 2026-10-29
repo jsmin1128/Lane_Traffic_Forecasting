@@ -4,7 +4,15 @@ venv/
 env/
 __pycache__/
 
+# 에디터 / 로컬 도구 설정
 .idea/
+.vscode/
+.claude/
+
+# 데이터 (로컬 전용, 커밋하지 않음)
+data/raw/*
+!data/raw/.gitkeep
+processed/
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos
@@ -43,8 +51,3 @@ Temporary Items
 *.icloud
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
-src/.DS_Store
-src/adjacency/.DS_Store
-.gitignore
-.DS_Store
-.gitignore

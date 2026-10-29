@@ -19,7 +19,7 @@ import dask
 
 # 원본 디렉토리, 출력 디렉토리
 RAW_DIR = Path("0_raw/교통량데이터(회전교통량기반)")
-OUT_DIR = Path("1_lake/turn.parquet")
+OUT_DIR = Path("data/raw/turn.parquet")
 
 # Mac 리소스 포크나 숨김 파일 필터링: 실제 xml 파일만
 all_paths = glob.glob(str(RAW_DIR / "**" / "*.xml"), recursive=True)

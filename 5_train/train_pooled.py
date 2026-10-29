@@ -12,7 +12,7 @@ train_pooled.py  (revised)
     python 5_train/train_pooled.py \
         --epochs 40 --batch 8 --lr 5e-4 \
         --hidden_lstm 256 --residual_steps 12 \
-        --cluster_map lane_to_segment_id_by_edge.npy
+        --cluster_map processed/graph/lane_to_segment_id_by_edge.npy
 """
 
 import os
@@ -54,7 +54,7 @@ parser.add_argument('--lr', type=float, default=5e-4)
 parser.add_argument('--clip', type=float, default=5.0)
 parser.add_argument('--hidden_lstm', type=int, default=256)
 parser.add_argument('--residual_steps', type=int, default=12)
-parser.add_argument('--cluster_map', type=str, default='lane_to_segment_id_by_edge.npy')
+parser.add_argument('--cluster_map', type=str, default='processed/graph/lane_to_segment_id_by_edge.npy')
 parser.add_argument('--horizon', type=int, default=1)
 args = parser.parse_args()
 
@@ -96,7 +96,7 @@ def main():
     cluster_np = np.load(args.cluster_map)
     cluster_id = torch.from_numpy(cluster_np).long().to(device)
     num_clusters = int(cluster_id.max()) + 1
-    A_path = project_root / '3_tensor' / 'adjacency' / 'A_lane.npy'
+    A_path = project_root / 'processed' / 'graph' / 'A_lane.npy'
     A = torch.from_numpy(np.load(A_path)).float().to(device)
 
     print(f"✔ Clusters {num_clusters} | Nodes {num_nodes} | Cin {C_in} | Cout {C_out} | Residual {residual_steps}")

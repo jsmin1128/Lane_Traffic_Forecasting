@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 """
-1_lake/net/bucheon.net.xml 에서
+data/raw/net/bucheon.net.xml 에서
   • lane 단위 인접행렬 A (N×N, self-loop 포함)
   • lane 리스트 lanes (차로 ID, 길이 N)
 를 추출하여 numpy 및 sparse 파일로 저장하고, 간단히 검증합니다.
@@ -28,7 +28,7 @@ def parse_adjacency(net_xml_path: str, directed=True):
     lane 단위로 인접행렬을 생성합니다.
 
     Args:
-      net_xml_path: SUMO 네트워크 XML 파일 경로 (예: '1_lake/net/bucheon.net.xml')
+      net_xml_path: SUMO 네트워크 XML 파일 경로 (예: 'data/raw/net/bucheon.net.xml')
       directed: True면 방향 그래프, False면 무향 그래프
 
     Returns:
@@ -144,7 +144,7 @@ def main():
         sys.exit(1)
 
     net_xml = sys.argv[1]
-    out_dir = Path("3_tensor/adjacency")
+    out_dir = Path("processed/graph")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 2) lane 단위 파싱 수행

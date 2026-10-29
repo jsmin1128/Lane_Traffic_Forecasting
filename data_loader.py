@@ -110,7 +110,7 @@ def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_
     # ─────────────────────────────────────────────────────────────────────────
     # 1) 윈도우 데이터: all_X.npy (shape=(8556,12,1370,C)) 
     #                   all_Y.npy (shape=(8556,1370,8))
-    data_windows_dir = os.path.join('3_tensor', 'windows')
+    data_windows_dir = os.path.join('processed', 'windows')
     x_path = os.path.join(data_windows_dir, 'all_X.npy')
     y_path = os.path.join(data_windows_dir, 'all_Y.npy')
     date_path = os.path.join(data_windows_dir, 'all_DATE.npy')

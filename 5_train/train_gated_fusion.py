@@ -76,7 +76,7 @@ def main():
     train_loader, val_loader, test_loader = get_dataloaders(batch_size=args.batch)
 
     # 4) 인접행렬 A 로드
-    adj_path = Path('3_tensor') / 'adjacency' / 'A_lane.npy'
+    adj_path = Path('processed') / 'graph' / 'A_lane.npy'
     assert adj_path.exists(), f"Adjacency file not found: {adj_path}"
     # NumPy 로드 후 Tensor로 변환
     A = torch.from_numpy(__import__('numpy').load(str(adj_path))).float().to(device)

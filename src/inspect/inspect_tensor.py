@@ -14,8 +14,8 @@ tensor_inspect.py
 • 각 채널별 통계 (min, max, mean, std, median, q1, q3, nonzero_count, zero_count)
 
 출력 파일:
-  - 3_tensor/tensor_summary.csv
-  - 3_tensor/tensor_channel_stats.csv
+  - processed/tensor/tensor_summary.csv
+  - processed/tensor/tensor_channel_stats.csv
 """
 
 import os
@@ -31,7 +31,7 @@ DATE_LIST = [
     20220926, 20220928, 20220930, 20221001, 20221002,
     20221026, 20221027, 20221028, 20221030, 20221031
 ]
-BASE_DIR = '3_tensor/'  # 각 날짜별 폴더가 있는 디렉토리
+BASE_DIR = 'processed/tensor/'  # 각 날짜별 폴더가 있는 디렉토리
 FIELDS = ['input_tensor', 'normalized_tensor']
 
 # 2) 결과 저장용 리스트 초기화

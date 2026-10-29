@@ -36,7 +36,7 @@ DATE_LIST = [
 ]
 date_stats = {}
 for dt in DATE_LIST:
-    raw = np.load(f'3_tensor/{dt}/input_tensor_{dt}.npy')  # (288,1370,8)
+    raw = np.load(f'processed/tensor/{dt}/input_tensor_{dt}.npy')  # (288,1370,8)
     means = raw.mean(axis=(0,1))   # shape (8,)
     stds  = raw.std(axis=(0,1))    # shape (8,)
     date_stats[dt] = (means, stds)
@@ -56,7 +56,7 @@ def parse_args():
     p.add_argument('--out_csv',     default='weekday_holiday_metrics.csv')
     p.add_argument('--out_png',     default='weekday_holiday_plot.png')
     p.add_argument('--dpi',         type=int, default=150)
-    p.add_argument('--windows_dir', default='3_tensor/windows',
+    p.add_argument('--windows_dir', default='processed/windows',
                    help='all_X.npy 등이 저장된 디렉터리')
     p.add_argument('--cluster_map', default='',
                    help="Optional path to 'lane_to_segment_id_by_edge.npy'. "
@@ -175,7 +175,7 @@ def evaluate_lstm(ckpt_path, loader, device):
 
 def evaluate_stgcn(ckpt_path, loader, device):
     ckpt = torch.load(ckpt_path, map_location=device)
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
     num_nodes = A.size(0)
     model = STGCN(in_channels=9,
                   hidden1=ckpt['model_state']['layer1.temp1.weight'].shape[0],
@@ -201,7 +201,7 @@ def evaluate_pooled(ckpt_path, loader, device, cluster_map_path: str = ''):
     ckpt = torch.load(ckpt_path, map_location=device)
 
     # ① Adjacency
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
 
     # ② Cluster map (lane → segment)
     cluster_map_candidates = []
@@ -209,8 +209,7 @@ def evaluate_pooled(ckpt_path, loader, device, cluster_map_path: str = ''):
         cluster_map_candidates.append(cluster_map_path)
     # default fallbacks
     cluster_map_candidates += [
-        'segment/lane_to_segment_id_by_edge.npy',
-        '3_tsegment/lane_to_segment_id_by_edge.npy'
+        'processed/graph/lane_to_segment_id_by_edge.npy',
     ]
     cluster_np = None
     for p in cluster_map_candidates:
@@ -221,7 +220,7 @@ def evaluate_pooled(ckpt_path, loader, device, cluster_map_path: str = ''):
         raise FileNotFoundError(
             "lane_to_segment_id_by_edge.npy not found in default locations.\n"
             "Please provide the correct path or move the file to "
-            "'segment/' or '3_tensor/segment/'."
+            "'processed/graph/'."
         )
     cluster_id = torch.from_numpy(cluster_np).long().to(device)
     num_nodes = A.size(0)

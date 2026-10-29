@@ -20,7 +20,7 @@ import numpy as np
 # └──────────────────────────────────────────────────────────────────────────┘
 
 # 저장된 윈도우 디렉토리(‘make_windows.py’에서 지정한 경로와 동일)
-SAVE_DIR = '3_tensor/windows'
+SAVE_DIR = 'processed/windows'
 X_PATH   = os.path.join(SAVE_DIR, 'all_X.npy')
 Y_PATH   = os.path.join(SAVE_DIR, 'all_Y.npy')
 

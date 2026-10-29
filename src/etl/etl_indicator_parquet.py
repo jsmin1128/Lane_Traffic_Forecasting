@@ -3,7 +3,7 @@
 """
 etl_indicator_parquet.py
 
-0_raw/지표데이터/*.csv ➜ 1_lake/indicator.parquet
+0_raw/지표데이터/*.csv ➜ data/raw/indicator.parquet
   • 원본 필드 100% 보존
   • Mac 리소스포크(. _*) 자동 필터링
   • 제어문자/쓰레기값(<NA>/NaN) 자동 제거
@@ -20,7 +20,7 @@ from dask import delayed
 from dask.diagnostics import ProgressBar
 
 RAW_DIR = "0_raw/지표데이터"
-OUT_DIR = "1_lake/indicator.parquet"
+OUT_DIR = "data/raw/indicator.parquet"
 
 # — 1) 모든 CSV 경로 수집 & Mac 리소스포크(. _*) 필터링
 all_csv = glob.glob(f"{RAW_DIR}/**/*.csv", recursive=True)

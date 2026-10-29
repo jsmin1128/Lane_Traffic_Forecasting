@@ -15,9 +15,9 @@ from model.pooled_residual_stgcn import PooledResSTGCN
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_loader, _, _ = get_dataloaders(batch_size=2)
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
 
-    mapping    = np.load('lane_to_segment_id_by_edge.npy')
+    mapping    = np.load('processed/graph/lane_to_segment_id_by_edge.npy')
     cluster_id = torch.from_numpy(mapping).long().to(device)
 
     num_nodes  = mapping.shape[0]

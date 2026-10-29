@@ -9,8 +9,8 @@ test_mapping.py
 import numpy as np
 
 # 1) 매핑 파일 로드
-mapping = np.load('lane_to_segment_id_by_edge.npy')
-lanes   = open('lanes.txt').read().splitlines()
+mapping = np.load('processed/graph/lane_to_segment_id_by_edge.npy')
+lanes   = open('processed/graph/lanes.txt').read().splitlines()
 
 assert mapping.ndim == 1, "매핑 배열이 일차원이 아닙니다."
 assert mapping.shape[0] == len(lanes), "lanes.txt 길이와 매핑 길이 불일치"

@@ -73,7 +73,7 @@ def evaluate_lstm(ckpt_path, test_loader, device):
 def evaluate_stgcn(ckpt_path, test_loader, device):
     ckpt = torch.load(ckpt_path, map_location=device)
     # load adjacency from data_loader or fixed path
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
     num_nodes = A.size(0)
     model = STGCN(
         in_channels=9,
@@ -101,8 +101,8 @@ def evaluate_stgcn(ckpt_path, test_loader, device):
 def evaluate_pooled(ckpt_path, test_loader, device):
     ckpt = torch.load(ckpt_path, map_location=device)
     # load adjacency and cluster map
-    A = torch.from_numpy(np.load('3_tensor/adjacency/A_lane.npy')).float().to(device)
-    cluster_id = torch.from_numpy(np.load('segment/lane_to_segment_id_by_edge.npy')).long().to(device)
+    A = torch.from_numpy(np.load('processed/graph/A_lane.npy')).float().to(device)
+    cluster_id = torch.from_numpy(np.load('processed/graph/lane_to_segment_id_by_edge.npy')).long().to(device)
     num_nodes = A.size(0)
     model = PooledResSTGCN(
         in_c=ckpt['model_state']['stgcn.layer1.temp1.weight'].shape[1],
