@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ## 빠른 시작
 
 ```bash
-# 1. 데이터를 data/raw/에 배치 (아래 "데이터 준비" 참고)
+# 1. 데이터 받기: Google Drive의 zip을 data/raw/에 압축 해제 (아래 "데이터 준비" 참고)
 
 # 2. 전처리: data/raw → processed/ (약 1분)
 python scripts/build_dataset.py
@@ -66,7 +66,12 @@ python scripts/evaluate.py stgcn
 
 ## 데이터 준비
 
-[Google Drive](GOOGLE_DRIVE_LINK)에서 받아 `data/raw/`에 둡니다 (약 3.5GB):
+[Google Drive](https://drive.google.com/file/d/1kVC92ZN-4AOmYMBl6JRvECfy7RZVrzdB/view?usp=drive_link)에서 `Lane_Traffic_Forecasting.zip`(약 3.2GB)을 받아
+`data/raw/`에 압축을 풉니다:
+
+```bash
+unzip Lane_Traffic_Forecasting.zip -d data/raw
+```
 
 ```text
 data/raw/
