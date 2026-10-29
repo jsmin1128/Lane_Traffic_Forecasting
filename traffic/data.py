@@ -102,7 +102,7 @@ def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_
         num_workers (int): DataLoader에 사용할 CPU 코어 수.
                            None인 경우, min(4, os.cpu_count()//2)로 자동 설정. 0이면 메인 프로세스에서 읽음.
         pin_memory (bool): True면, GPU(pin_memory=True)용 고속 전송을 위해 사용.
-        windows_dir: all_X.npy 등이 있는 폴더 (기본: processed/windows)
+        windows_dir: X.npy, Y.npy, dates.npy가 있는 폴더 (기본: processed/windows)
 
     Returns:
         train_loader, val_loader, test_loader (tuple of DataLoader)
@@ -111,15 +111,15 @@ def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_
     # ─────────────────────────────────────────────────────────────────────────
     # 0) numpy 파일 경로 설정 (프로젝트 루트 기준)
     # ─────────────────────────────────────────────────────────────────────────
-    # 1) 윈도우 데이터: all_X.npy (shape=(8556,12,1370,C)) 
-    #                   all_Y.npy (shape=(8556,1370,8))
+    # 1) 윈도우 데이터: X.npy (shape=(8556,12,1370,9))
+    #                   Y.npy (shape=(8556,1370,8)), dates.npy (shape=(8556,))
     data_windows_dir = Path(windows_dir) if windows_dir else config.PROCESSED_DIR / 'windows'
-    x_path = data_windows_dir / 'all_X.npy'
-    y_path = data_windows_dir / 'all_Y.npy'
-    date_path = data_windows_dir / 'all_DATE.npy'
+    x_path = data_windows_dir / 'X.npy'
+    y_path = data_windows_dir / 'Y.npy'
+    date_path = data_windows_dir / 'dates.npy'
 
     if not os.path.exists(x_path) or not os.path.exists(y_path) or not os.path.exists(date_path):
-        raise FileNotFoundError(f"all_X.npy 또는 all_Y.npy 또는 all_DATE파일을 찾을 수 없습니다:\n"
+        raise FileNotFoundError(f"X.npy, Y.npy, dates.npy 중 없는 파일이 있습니다 (scripts/build_dataset.py로 만드세요):\n"
                                 f"  Expected: {x_path}\n"
                                 f"  Expected: {y_path}\n"
                                 f"  Expected: {date_path}\n")

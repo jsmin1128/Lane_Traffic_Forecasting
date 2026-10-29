@@ -3,24 +3,13 @@
 """
 check_tensors.py
 
-생성된 input_tensor 및 normalized_tensor(.npy) 파일에 대해
-아래 정보를 상세히 추출하여 CSV로 저장하는 스크립트입니다.
+processed/tensors의 values.npy, normalized.npy, dates.npy를 점검합니다 (파일은 만들지 않음).
+  - shape, dtype, NaN·Inf·음수 개수
+  - 채널별 실제 값 통계 (31일 전체): 최소, 최대, 평균, 0의 비율
+  - normalized가 날짜·채널마다 평균 0, 표준편차 1인지 (값이 모두 같은 채널은 전부 0)
 
-• 각 날짜별 input_tensor / normalized_tensor 기본 요약
-  - shape, dtype, 전체 요소 수
-  - NaN 개수, Inf 개수, 음수 개수, 양수 개수, 0 개수
-  - 채널 수
-
-• 각 채널별 통계 (min, max, mean, std, median, q1, q3, nonzero_count, zero_count)
-
-출력 파일:
-  - processed/tensor/tensor_summary.csv
-  - processed/tensor/tensor_channel_stats.csv
+사용법: python scripts/check/check_tensors.py
 """
-
-import os
-import numpy as np
-import pandas as pd
 
 import sys
 from pathlib import Path
@@ -29,99 +18,39 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+import numpy as np
+import pandas as pd
+
 from traffic import config
 
-# 1) 검사할 날짜 리스트 및 기본 경로 설정
-DATE_LIST = config.DATES
-BASE_DIR = str(config.PROCESSED_DIR / 'tensor')  # 각 날짜별 폴더가 있는 디렉토리
-FIELDS = ['input_tensor', 'normalized_tensor']
+CHANNELS = ['대기 승용', '대기 버스', '대기 트럭', '대기 오토바이', '속도 승용', '속도 버스', '속도 트럭', '속도 오토바이']
 
-# 2) 결과 저장용 리스트 초기화
-summary_records = []
-channel_stats_list = []
 
-# 3) 날짜별/필드별로 텐서 로드 및 통계 계산
-for date in DATE_LIST:
-    date_str = str(date)
-    date_dir = os.path.join(BASE_DIR, date_str)
-    for field in FIELDS:
-        # .npy 파일 경로
-        npy_path = os.path.join(date_dir, f'{field}_{date}.npy')
-        if not os.path.exists(npy_path):
-            print(f"⚠️ 경고: 파일이 존재하지 않습니다: {npy_path}")
-            continue
-        
-        # 3-1) 텐서 로드
-        tensor = np.load(npy_path)  # ex) shape=(288, 1370, 8)
-        shape = tensor.shape
-        dtype = tensor.dtype
-        
-        # 3-2) 전체 요소 수 및 NaN/Inf/음수/양수/0 개수
-        total_elements = tensor.size
-        nan_count = int(np.isnan(tensor).sum())
-        inf_count = int(np.isinf(tensor).sum())
-        neg_count = int((tensor < 0).sum())
-        pos_count = int((tensor > 0).sum())
-        zero_count = int((tensor == 0).sum())
-        
-        # 3-3) 채널 수 및 채널별 통계
-        num_channels = shape[2]
-        for ch in range(num_channels):
-            vals = tensor[:, :, ch].ravel()
-            ch_min = float(np.min(vals))
-            ch_max = float(np.max(vals))
-            ch_mean = float(np.mean(vals))
-            ch_std = float(np.std(vals))
-            ch_median = float(np.median(vals))
-            ch_q1 = float(np.percentile(vals, 25))
-            ch_q3 = float(np.percentile(vals, 75))
-            ch_nonzero = int(np.count_nonzero(vals))
-            ch_zero = int(vals.size - ch_nonzero)
-            
-            channel_stats_list.append({
-                'date': date,
-                'field': field,
-                'channel': ch,
-                'min': ch_min,
-                'max': ch_max,
-                'mean': ch_mean,
-                'std': ch_std,
-                'median': ch_median,
-                'q1': ch_q1,
-                'q3': ch_q3,
-                'nonzero_count': ch_nonzero,
-                'zero_count': ch_zero
-            })
-        
-        # 3-4) 요약 레코드 추가
-        summary_records.append({
-            'date': date,
-            'field': field,
-            'shape': shape,
-            'dtype': str(dtype),
-            'total_elements': total_elements,
-            'nan_count': nan_count,
-            'inf_count': inf_count,
-            'neg_count': neg_count,
-            'pos_count': pos_count,
-            'zero_count': zero_count,
-            'num_channels': num_channels
-        })
+def main():
+    tensors_dir = config.PROCESSED_DIR / 'tensors'
+    values = np.load(tensors_dir / 'values.npy')
+    normalized = np.load(tensors_dir / 'normalized.npy')
+    dates = np.load(tensors_dir / 'dates.npy')
+    print(f"▶ values {values.shape} {values.dtype} | normalized {normalized.shape} {normalized.dtype} | "
+          f"dates {dates.shape} ({dates[0]} ~ {dates[-1]})")
+    assert values.shape == normalized.shape and values.shape[0] == len(dates), "배열 크기가 서로 맞지 않습니다."
+    for name, x in [('values', values), ('normalized', normalized)]:
+        print(f"▶ {name}: NaN {int(np.isnan(x).sum())}개, Inf {int(np.isinf(x).sum())}개, 음수 {int((x < 0).sum())}개")
 
-# 4) DataFrame으로 정리
-summary_df = pd.DataFrame(summary_records)
-channel_stats_df = pd.DataFrame(channel_stats_list)
+    flat = values.reshape(-1, values.shape[-1])
+    stats = pd.DataFrame({'최소': flat.min(0), '최대': flat.max(0), '평균': flat.mean(0, dtype=np.float64),
+                          '0의 비율': (flat == 0).mean(0)}, index=CHANNELS)
+    print("\n▶ 채널별 실제 값 (31일 전체)")
+    print(stats.round(3).to_string())
 
-# 5) 출력 결과 예시 (콘솔에 일부만 출력)
-print("\n▶ 텐서 전체 요약 (일부 예시):")
-print(summary_df.head(6).to_string(index=False))
+    # 날짜·채널마다 평균 0, 표준편차 1 (표준편차 0인 채널은 전부 0)
+    mean = normalized.mean(axis=(1, 2), dtype=np.float64)
+    std = normalized.std(axis=(1, 2), dtype=np.float64)
+    ok = (np.abs(mean) < 1e-3) & ((np.abs(std - 1) < 1e-3) | (std == 0))
+    print(f"\n▶ 정규화 확인: 날짜×채널 {ok.size}개 중 {int(ok.sum())}개 통과")
+    for d, c in zip(*np.nonzero(~ok)):
+        print(f"  ✗ {dates[d]} {CHANNELS[c]}: 평균 {mean[d, c]:.4f}, 표준편차 {std[d, c]:.4f}")
 
-print("\n▶ 채널별 상세 통계 (일부 예시):")
-print(channel_stats_df.head(8).to_string(index=False))
 
-# 6) CSV로 저장
-summary_df.to_csv(os.path.join(BASE_DIR, 'tensor_summary.csv'), index=False)
-channel_stats_df.to_csv(os.path.join(BASE_DIR, 'tensor_channel_stats.csv'), index=False)
-
-print(f"\n✅ 요약 정보가 '{os.path.join(BASE_DIR, 'tensor_summary.csv')}'에 저장되었습니다.")
-print(f"✅ 채널별 통계가 '{os.path.join(BASE_DIR, 'tensor_channel_stats.csv')}'에 저장되었습니다.")
+if __name__ == '__main__':
+    main()

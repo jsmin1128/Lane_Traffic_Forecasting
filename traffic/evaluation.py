@@ -44,17 +44,17 @@ def load_model(name, ckpt_path, num_nodes, device):
     if name == 'lstm':
         model = BasicLSTM(
             num_nodes=num_nodes,
-            input_dim=config.NUM_TRAFFIC,
+            input_dim=config.NUM_CHANNELS,
             hidden_dim=state['lstm.weight_ih_l0'].shape[0] // 4,
             num_layers=1,
             dropout=0.0
         )
     elif name == 'stgcn':
-        A = torch.from_numpy(np.load(config.PROCESSED_DIR / 'graph' / 'A_lane.npy')).float().to(device)
+        A = torch.from_numpy(np.load(config.PROCESSED_DIR / 'graph' / 'adjacency.npy')).float().to(device)
         model = STGCN(
-            in_channels=config.NUM_TRAFFIC + 1,
+            in_channels=config.NUM_CHANNELS + 1,
             hidden1=state['layer1.temp1.weight'].shape[0],
-            out_channels=config.NUM_TRAFFIC,
+            out_channels=config.NUM_CHANNELS,
             num_nodes=num_nodes,
             A=A,
             horizon=1
@@ -102,9 +102,11 @@ def save_test_metrics(name, ckpt_path, y_true, y_pred):
 
 
 def date_stats(date):
-    """build_tensors가 정규화에 쓴 날짜별 채널 평균·표준편차"""
-    raw = np.load(os.path.join(config.PROCESSED_DIR, 'tensor', str(date), f'input_tensor_{date}.npy'))  # (288,1370,8)
-    ch = raw.reshape(-1, raw.shape[-1])
+    """정규화를 되돌릴 때 쓰는 날짜별 채널 평균·표준편차 (tensors/values.npy에서 계산)"""
+    tensors_dir = config.PROCESSED_DIR / 'tensors'
+    dates = np.load(tensors_dir / 'dates.npy').tolist()
+    values = np.load(tensors_dir / 'values.npy', mmap_mode='r')[dates.index(date)]   # (288, N, 8)
+    ch = np.asarray(values).reshape(-1, values.shape[-1])
     return ch.mean(axis=0), ch.std(axis=0)
 
 

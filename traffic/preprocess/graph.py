@@ -1,8 +1,8 @@
 """
-도로망(SUMO net.xml)으로 차로 그래프를 만듭니다 → <out_dir>/lanes.txt, A_lane.npy
+도로망(SUMO net.xml)으로 차로 그래프를 만듭니다 → <out_dir>/lanes.txt, adjacency.npy
 
-  lanes.txt   그래프의 노드 = 차로 ID 목록. 이 순서가 텐서와 모델의 차로 순서입니다.
-  A_lane.npy  정규화된 인접행렬 (N×N, float32). A[i, j] > 0 이면 차로 i에서 차로 j로 갈 수 있습니다.
+  lanes.txt      그래프의 노드 = 차로 ID 목록. 이 순서가 텐서와 모델의 차로 순서입니다.
+  adjacency.npy  정규화된 인접행렬 A (N×N, float32). A[i, j] > 0 이면 차로 i에서 차로 j로 갈 수 있습니다.
 
 만드는 순서
   1) 노드: 일반 도로(edge)의 차로. 교차로 내부 도로(id가 ':'로 시작)는 뺍니다.
@@ -55,7 +55,7 @@ def normalized_adjacency(lanes, links):
 
 
 def build_graph(net_xml, out_dir):
-    """net.xml → out_dir/lanes.txt, A_lane.npy"""
+    """net.xml → out_dir/lanes.txt, adjacency.npy"""
     lanes, links = read_lanes_and_links(net_xml)
 
     # 고립 차로(링크가 하나도 없는 차로) 빼기
@@ -68,5 +68,5 @@ def build_graph(net_xml, out_dir):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / 'lanes.txt').write_text(''.join(f'{lane}\n' for lane in lanes), encoding='utf-8')
-    np.save(out_dir / 'A_lane.npy', A_norm)
-    print(f"▶ 차로 {len(lanes)}개 (고립 차로 {len(isolated)}개 제외), 링크 {len(links)}개 → {out_dir}/lanes.txt, A_lane.npy")
+    np.save(out_dir / 'adjacency.npy', A_norm)
+    print(f"▶ 차로 {len(lanes)}개 (고립 차로 {len(isolated)}개 제외), 링크 {len(links)}개 → {out_dir}/lanes.txt, adjacency.npy")

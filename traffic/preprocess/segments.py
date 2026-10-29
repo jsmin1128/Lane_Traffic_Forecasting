@@ -1,7 +1,7 @@
 """
-차로 → 세그먼트 매핑을 만듭니다 → lane_to_segment_id_by_edge.npy (ST-GCN + Segment 모델이 씀)
+차로 → 세그먼트 번호를 만듭니다 → segments.npy (ST-GCN + Segment 모델이 씀)
 
-  결과: lanes.txt 순서의 int32 배열 (길이 N). 값 = 그 차로가 속한 세그먼트 번호 (0부터)
+  segments.npy  lanes.txt 순서의 int32 배열 (길이 N). 값 = 그 차로가 속한 세그먼트 번호 (0부터)
 
 만드는 순서
   1) 이웃 도로: 도로 a가 끝나는 교차로에서 도로 b가 시작하면 a와 b를 서로 이웃으로 봅니다.

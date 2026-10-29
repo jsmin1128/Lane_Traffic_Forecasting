@@ -30,7 +30,7 @@ pip install -r requirements.txt
 ```bash
 # 1. data/raw/ 준비 (아래 "데이터" 참고)
 
-# 2. 전처리: data/raw → processed/ (약 5분)
+# 2. 전처리: data/raw → processed/ (약 1분)
 python scripts/build_dataset.py
 
 # 3. 학습 → 평가 (모델 하나씩, 결과는 outputs/<모델명>/)
@@ -59,7 +59,7 @@ python scripts/evaluate.py stgcn
 │   ├── config.py                  # ★ 경로, 날짜 31일, 상수
 │   ├── data.py                    # Dataset, get_dataloaders (70/15/15 분할)
 │   ├── models/                    # lstm.py, stgcn.py, stgcn_segment.py
-│   ├── preprocess/                # graph, segments, tensors, windows
+│   ├── preprocess/                # 전처리 단계: graph, segments, tensors, windows
 │   ├── training.py                # 공통 학습 루프, 모델별 기본 설정 (DEFAULTS)
 │   └── evaluation.py              # 테스트 지표, 그래프
 │
@@ -93,17 +93,32 @@ AI Hub 데이터는 재배포할 수 없어 git에 올리지 않습니다. 따�
 ## 전처리
 
 ```bash
-python scripts/build_dataset.py                  # 전부
-python scripts/build_dataset.py flags windows    # 일부 단계만 (뒤 단계는 앞 단계 결과를 읽음)
+python scripts/build_dataset.py                    # 전부
+python scripts/build_dataset.py tensors windows    # 일부 단계만 (뒤 단계는 앞 단계 결과를 읽음)
 ```
 
-| 단계 | 결과 (`processed/`) | 내용 |
-|---|---|---|
-| graph | `graph/lanes.txt`, `A_lane.npy` | 차로 목록, 정규화된 차로 인접행렬 (1370×1370) |
-| segments | `graph/lane_to_segment_id_by_edge.npy` | 차로 → 세그먼트(88개) 매핑 |
-| tensors | `tensor/<날짜>/input_tensor_<날짜>.npy`, `normalized_tensor_<날짜>.npy` | 날짜별 (288 슬롯, 1370 차로, 8채널), 정규화는 날짜·채널별 z-score |
-| flags | `tensor/<날짜>/normalized_tensor_<날짜>_with_flag.npy` | 정규화 텐서에 주말·공휴일 플래그 채널 추가 (9채널) |
-| windows | `windows/all_X.npy`, `all_Y.npy`, `all_DATE.npy` | X (8556, 12, 1370, 9), Y (8556, 1370, 8) |
+| 단계 | 하는 일 |
+|---|---|
+| graph | 도로망에서 차로 1,370개와 차로 사이 연결을 읽어 정규화된 인접행렬을 만듦 |
+| segments | 도로를 5개씩 묶어 차로마다 세그먼트 번호(88개)를 매김 |
+| tensors | od 기록을 날짜·5분 슬롯·차로·차종별 대기 차량 수와 평균 속도로 집계하고 날짜·채널별 z-score로 정규화 |
+| windows | 하루 안에서 과거 1시간(12스텝) 입력과 다음 5분 정답을 잘라 학습 샘플을 만들고, 입력에 주말·공휴일 플래그를 붙임 |
+
+```text
+processed/
+├── graph/
+│   ├── lanes.txt          차로 ID 1,370개 (모든 배열의 차로 순서)
+│   ├── adjacency.npy      정규화된 인접행렬 (1370, 1370)
+│   └── segments.npy       차로별 세그먼트 번호 (1370,)
+├── tensors/
+│   ├── values.npy         (31일, 288 슬롯, 1370 차로, 8채널) 실제 값
+│   ├── normalized.npy     (31일, 288, 1370, 8) 날짜·채널별 z-score
+│   └── dates.npy          (31,)
+└── windows/
+    ├── X.npy              (8556, 12, 1370, 9) 입력: 8채널 + 주말·공휴일 플래그
+    ├── Y.npy              (8556, 1370, 8) 정답: 다음 5분의 8채널
+    └── dates.npy          (8556,) 윈도우의 날짜
+```
 
 8채널은 차종 4종(승용, 버스, 트럭, 오토바이)별 대기 차량 수와 평균 속도입니다. 윈도우는 시간 순서대로
 학습·검증·테스트 70/15/15 (5,989 / 1,283 / 1,284개)로 나누며, 테스트셋은 2022-10-26 09:00 ~ 10-31 23:55(예측 시점 기준)입니다.
@@ -188,10 +203,12 @@ outputs/{모델명}/
 
 ```bash
 python scripts/check/check_models.py                  # 세 모델 forward (더미 입력)
-python scripts/check/check_windows.py                 # 학습 입력 shape, NaN, 연속성
+python scripts/check/check_windows.py                 # 학습 샘플 shape, NaN, 플래그, 연속성
 python scripts/check/check_data_loader.py             # 분할 크기, 배치 shape, 정규화
-python scripts/check/check_graph.py                   # 인접행렬 노드·엣지 수, 그래프 그림
+python scripts/check/check_graph.py                   # 차로·링크 수, 연결 요소, 그래프 그림 (창)
 python scripts/check/check_segments.py                # 세그먼트별 차로 수
-python scripts/check/check_tensors.py                 # 날짜별 텐서 통계 CSV
+python scripts/check/check_tensors.py                 # 텐서 NaN, 채널별 통계, 정규화 확인
 python scripts/check/check_parquet.py data/raw/turn.parquet   # Parquet 메타데이터·샘플
 ```
+
+점검 스크립트는 화면에만 출력하고 파일을 만들지 않습니다.

@@ -3,7 +3,7 @@
 """
 check_segments.py
 
-processed/graph/lane_to_segment_id_by_edge.npy (차로 → 세그먼트 매핑)를 검증하고,
+processed/graph/segments.npy (차로별 세그먼트 번호)를 검증하고,
 세그먼트별 차로 수 통계를 출력합니다.
 
 사용법: python scripts/check/check_segments.py
@@ -23,7 +23,7 @@ from traffic import config
 
 # 1) 매핑 파일 로드
 graph_dir = config.PROCESSED_DIR / 'graph'
-mapping = np.load(graph_dir / 'lane_to_segment_id_by_edge.npy')
+mapping = np.load(graph_dir / 'segments.npy')
 lanes   = (graph_dir / 'lanes.txt').read_text().splitlines()
 
 assert mapping.ndim == 1, "매핑 배열이 일차원이 아닙니다."

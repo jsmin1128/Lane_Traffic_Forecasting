@@ -36,24 +36,24 @@ DEFAULTS = {
 def build_model(name, opts, num_nodes, device):
     if name == 'lstm':
         return BasicLSTM(num_nodes=num_nodes,
-                         input_dim=config.NUM_TRAFFIC,
+                         input_dim=config.NUM_CHANNELS,
                          hidden_dim=opts['hidden_dim'],
                          num_layers=opts['num_layers'],
                          dropout=opts['dropout'])
 
-    A = torch.from_numpy(np.load(config.PROCESSED_DIR / 'graph' / 'A_lane.npy')).float().to(device)
+    A = torch.from_numpy(np.load(config.PROCESSED_DIR / 'graph' / 'adjacency.npy')).float().to(device)
     if name == 'stgcn':
-        return STGCN(in_channels=config.NUM_TRAFFIC + 1,
+        return STGCN(in_channels=config.NUM_CHANNELS + 1,
                      hidden1=opts['hidden'],
-                     out_channels=config.NUM_TRAFFIC,
+                     out_channels=config.NUM_CHANNELS,
                      num_nodes=A.size(0),
                      A=A,
                      horizon=1)
 
-    cluster_map = opts['cluster_map'] or config.PROCESSED_DIR / 'graph' / 'lane_to_segment_id_by_edge.npy'
+    cluster_map = opts['cluster_map'] or config.PROCESSED_DIR / 'graph' / 'segments.npy'
     cluster_id = torch.from_numpy(np.load(cluster_map)).long().to(device)
-    return STGCNSegment(in_c=config.NUM_TRAFFIC,
-                        out_c=config.NUM_TRAFFIC,
+    return STGCNSegment(in_c=config.NUM_CHANNELS,
+                        out_c=config.NUM_CHANNELS,
                         num_nodes=num_nodes,
                         A=A,
                         cluster_id=cluster_id,
