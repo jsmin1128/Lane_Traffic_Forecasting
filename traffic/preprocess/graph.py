@@ -1,29 +1,21 @@
-#!/usr/bin/env python3
-# build_adjacency.py (차로 단위 버전)
-# -*- coding: utf-8 -*-
-
 """
-data/raw/net/bucheon.net.xml 에서
-  • lane 단위 인접행렬 A (N×N, self-loop 포함)
-  • lane 리스트 lanes (차로 ID, 길이 N)
-를 추출하여 numpy 및 sparse 파일로 저장하고, 간단히 검증합니다.
+도로망(SUMO net.xml)에서 차로 단위 그래프를 만듭니다.
 
-[주요 수정 포인트]
-- parse_adjacency: edge → lane 단위로 노드 수집
-- parse_adjacency: connection 순회 시 “edge의 모든 lane ↔ edge의 모든 lane” 쌍으로 가중치 누적
-- main: 실제 고립된 lane(연결 없는 lane)을 필터링하여 제거
-- main: 출력 파일명을 lanes.txt 로 변경
+  • A_lane.npy / A_lane.npz : 정규화된 차로 인접행렬 D^-1/2 Â D^-1/2 (N×N, self-loop 포함)
+  • lanes.txt               : 차로 ID 목록 (길이 N, 행렬의 행 순서)
+
+edge의 모든 lane ↔ 연결된 edge의 모든 lane 쌍으로 가중치를 누적하고,
+연결이 하나도 없는 고립 lane은 제외합니다.
 """
 
-import sys
-import platform
-import warnings
-from lxml import etree            # XML 파싱 (lxml 사용)
-import numpy as np                # 수치 연산
 from pathlib import Path
-import scipy.sparse as sp         # 희소 행렬 저장
 
-def parse_adjacency(net_xml_path: str, directed=True):
+import numpy as np
+import scipy.sparse as sp
+from lxml import etree
+
+
+def parse_adjacency(net_xml_path, directed=True):
     """
     lane 단위로 인접행렬을 생성합니다.
 
@@ -100,18 +92,13 @@ def parse_adjacency(net_xml_path: str, directed=True):
 
     return A, lanes
 
+
 def get_normalized_adjacency(A: np.ndarray):
     """
     정규화된 인접행렬을 반환합니다:
       Â = A + I (self-loop 포함 가정)
       D = diag(degree(Â))
       A_norm = D^{-1/2} Â D^{-1/2}
-
-    Args:
-      A: np.ndarray, shape=(N, N), self-loop 포함 여부 상관 없음. 
-
-    Returns:
-      A_norm: np.ndarray, shape=(N, N)
     """
     if not isinstance(A, np.ndarray):
         raise TypeError("Input A must be numpy ndarray.")
@@ -129,30 +116,19 @@ def get_normalized_adjacency(A: np.ndarray):
     A_norm = D_inv_sqrt @ A @ D_inv_sqrt
     return A_norm
 
-def main():
-    # 0) 버전 정보 출력
-    print(f"Python version: {platform.python_version()}")
-    try:
-        import lxml
-        print(f"lxml version: {lxml.__version__}")
-    except ImportError:
-        warnings.warn("lxml not installed. XML 파싱 시 오류가 발생할 수 있습니다.")
 
-    # 1) 인수 개수 확인
-    if len(sys.argv) != 2:
-        print("Usage: python build_adjacency.py path/to/net.xml")
-        sys.exit(1)
-
-    net_xml = sys.argv[1]
-    out_dir = Path("processed/graph")
+def build_graph(net_xml, out_dir):
+    """net.xml → out_dir/A_lane.npy, A_lane.npz, lanes.txt"""
+    net_xml = str(net_xml)
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2) lane 단위 파싱 수행
+    # 1) lane 단위 파싱 수행
     print("▶ Parsing adjacency (lane-level)...")
     A, lanes = parse_adjacency(net_xml, directed=True)
     print(f"  • 수집된 raw lane 수: {len(lanes)}")
 
-    # 3) 실제 연결된 lane만 필터링
+    # 2) 실제 연결된 lane만 필터링
     print("▶ 실제 고립 lane 필터링 중...")
     tree_root = etree.parse(net_xml).getroot()
     connected = set()
@@ -188,11 +164,11 @@ def main():
     lanes = [lanes[i] for i in keep_indices]
     print(f"  • 필터 후 남은 lane 수: {len(lanes)}")
 
-    # 4) 정규화된 인접행렬 계산
+    # 3) 정규화된 인접행렬 계산
     print("▶ 인접행렬 정규화 중...")
     A_norm = get_normalized_adjacency(A)
 
-    # 5) 결과 저장
+    # 4) 결과 저장
     print("▶ 결과 저장 중...")
     np.save(out_dir / "A_lane.npy", A_norm)             # NumPy 바이너리
     A_sparse = sp.csr_matrix(A_norm)
@@ -202,13 +178,10 @@ def main():
         for lid in lanes:
             f.write(f"{lid}\n")
 
-    # 6) 최종 검증 정보 출력
+    # 5) 최종 검증 정보 출력
     N_final = A_norm.shape[0]
     nonzero_links = int(np.sum(A_norm > 0)) - N_final  # self-loop 제외
     print(f"[완료] 저장된 파일: {out_dir}/A_lane.npy, A_lane.npz, lanes.txt")
     print(f"  • A_norm shape: {A_norm.shape}")
     print(f"  • self-loop 제외 nonzero link 수: {nonzero_links}")
     print(f"  • Sample lanes: {lanes[:5]}")
-
-if __name__ == "__main__":
-    main()

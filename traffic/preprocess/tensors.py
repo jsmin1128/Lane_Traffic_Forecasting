@@ -1,59 +1,27 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-generate_tensors.py
+날짜별 텐서를 만듭니다.
 
-여러 날짜에 대해 입력 텐서(input_tensor)와 정규화된 텐서(normalized_tensor)를
-자동으로 생성하여 'processed/tensor/' 폴더에 저장하는 스크립트입니다.
+build_tensors: od.parquet → <out_dir>/<날짜>/input_tensor_<날짜>.npy, normalized_tensor_<날짜>.npy
+    shape = (288 슬롯, N 차로, 8 채널) = 차종 4종 대기 차량 수 + 차종 4종 평균 속도
+    정규화는 날짜·채널별 Z-score입니다.
 
-사용법:
-    python generate_tensors.py
-
-필요 경로:
-    1) Parquet 원본 데이터: 'data/raw/od.parquet'
-    2) 전체 lane ID 목록: 'processed/graph/lanes.txt'
-    3) 결과 저장 폴더: 'processed/tensor/<날짜>/' (없으면 자동 생성)
-
-출력 파일 예시:
-    - processed/tensor/20220810/input_tensor_20220810.npy
-    - processed/tensor/20220810/normalized_tensor_20220810.npy
+add_flags: 위 두 텐서 뒤에 "주말 또는 공휴일" 플래그 채널을 붙여
+    input_tensor_<날짜>_with_flag.npy, normalized_tensor_<날짜>_with_flag.npy (9채널)로 저장합니다.
 """
 
 import os
-import pandas as pd
-import numpy as np
 import warnings
 
-# 경고 메시지 감추기
-warnings.filterwarnings('ignore')
+import holidays
+import numpy as np
+import pandas as pd
 
-# 1) 대상 날짜 리스트
-DATE_LIST = [
-    20220810, 20220811, 20220812, 20220813, 20220814, 20220815,
-    20220819, 20220820, 20220821, 20220822, 20220823,
-    20220906, 20220907, 20220909, 20220910, 20220911,
-    20220912, 20220913, 20220914, 20220915, 20220916,
-    20220926, 20220928, 20220930, 20221001, 20221002,
-    20221026, 20221027, 20221028, 20221030, 20221031
-]
+from traffic import config
 
-# 2) 경로 설정
-OD_PARQUET_PATH = 'data/raw/od.parquet'
-LANE_IDS_PATH   = 'processed/graph/lanes.txt'
-OUTPUT_DIR      = 'processed/tensor'
-# # 출력 폴더가 없으면 생성
-# os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# 3) lane_ids 로드 (한 줄당 하나의 lane_id)
-with open(LANE_IDS_PATH, 'r', encoding='utf-8') as f:
-    lane_ids = [line.strip() for line in f.readlines()]
-
-NUM_LANES      = len(lane_ids)   # 보통 1370
-NUM_SLOTS      = 288             # 하루치 슬롯(5분 단위 × 24시간)
-NUM_CATEGORIES = 4               # 승용, 버스, 트럭, 오토바이
+NUM_CATEGORIES = 4                   # 승용, 버스, 트럭, 오토바이
 CHANNELS       = NUM_CATEGORIES * 2  # queue+spd → 8
 
-# 4) 차량 종류(vhcl_typ) → 카테고리 맵핑
+# 차량 종류(vhcl_typ) → 카테고리 맵핑
 VHC_TYP_MAPPING = {
     1: 0,  # 승용차 → 0
     2: 1,  # 버스   → 1
@@ -63,9 +31,8 @@ VHC_TYP_MAPPING = {
     6: 3   # 오토바이 → 3
 }
 
-def process_date(date: int):
-    date_dir = os.path.join(OUTPUT_DIR, str(date))
-    os.makedirs(date_dir, exist_ok=True)
+
+def build_date_tensor(date: int, od_parquet, lane_ids, out_dir):
     """
     주어진 날짜(date, YYYYMMDD)별로:
       1) Parquet에서 해당 날짜 데이터 로드
@@ -73,6 +40,11 @@ def process_date(date: int):
       3) Z-Score 정규화 → normalized_tensor 생성
       4) input_tensor 및 normalized_tensor를 .npy로 저장
     """
+    NUM_SLOTS = config.NUM_SLOTS
+    NUM_LANES = len(lane_ids)
+    date_dir = os.path.join(out_dir, str(date))
+    os.makedirs(date_dir, exist_ok=True)
+
     print(f"\n========== Processing Date: {date} ==========")
     # ──────────────────────────────────────────────────────────────────────────
     # 1) Parquet에서 해당 날짜 데이터 로드
@@ -80,7 +52,7 @@ def process_date(date: int):
     print("1) Reading Parquet for date =", date)
     try:
         od_df = pd.read_parquet(
-            OD_PARQUET_PATH,
+            str(od_parquet),
             engine='pyarrow',
             filters=[('date', '=', date)]
         )
@@ -248,9 +220,62 @@ def process_date(date: int):
     print(f"========== Completed Date: {date} ==========\n")
 
 
-if __name__ == '__main__':
-    # 모든 날짜에 대해 순차 처리
-    for dt in DATE_LIST:
-        process_date(dt)
+def build_tensors(od_parquet, lanes_path, out_dir, dates):
+    """dates의 모든 날짜에 대해 build_date_tensor를 순서대로 실행합니다."""
+    # lane_ids 로드 (한 줄당 하나의 lane_id)
+    with open(lanes_path, 'r', encoding='utf-8') as f:
+        lane_ids = [line.strip() for line in f.readlines()]
 
-    print("\nAll dates processed. Tensors saved in per-date folders under processed/tensor/")
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')   # pandas 경고 감추기
+        for date in dates:
+            build_date_tensor(date, od_parquet, lane_ids, out_dir)
+
+    print(f"\nAll dates processed. Tensors saved in per-date folders under {out_dir}/")
+
+
+def add_flags(tensor_dir, dates):
+    """input_tensor·normalized_tensor(.npy)에 "주말 또는 공휴일" 플래그 채널을 추가합니다 (8 → 9채널)."""
+    # 한국 공휴일 캘린더 (연도 자동 확장)
+    kr_holidays = holidays.KR()
+
+    for DATE in dates:
+        date_dir = os.path.join(tensor_dir, str(DATE))
+
+        input_path = os.path.join(date_dir, f'input_tensor_{DATE}.npy')
+        norm_path  = os.path.join(date_dir, f'normalized_tensor_{DATE}.npy')
+        if not os.path.exists(input_path) or not os.path.exists(norm_path):
+            print(f"⚠️ Skipping {DATE}: 파일 누락")
+            continue
+
+        # 1) 텐서 로드
+        input_tensor      = np.load(input_path)   # (288,1370,8)
+        normalized_tensor = np.load(norm_path)    # (288,1370,8)
+
+        # 2) DATE의 요일 및 공휴일 여부 계산
+        ts = pd.to_datetime(str(DATE), format='%Y%m%d')
+        weekday_idx = ts.weekday()                 # 0=월, …, 5=토,6=일
+        is_weekend  = (weekday_idx >= 5)
+        is_holiday  = (ts.date() in kr_holidays)
+
+        # 주말 또는 공휴일 플래그
+        weekend_hol_flag = 1.0 if (is_weekend or is_holiday) else 0.0
+
+        # 슬롯(288) × 노드(1370)로 브로드캐스트 → (288,1370,1)
+        num_slots = input_tensor.shape[0]
+        num_lanes = input_tensor.shape[1]
+        feat = np.full((num_slots, num_lanes, 1), weekend_hol_flag, dtype=np.float32)
+
+        # 3) 기존 텐서 뒤에 붙이기
+        aug_input = np.concatenate([input_tensor,      feat], axis=2)
+        aug_norm  = np.concatenate([normalized_tensor, feat], axis=2)
+
+        # 4) 저장
+        out_input_path = os.path.join(date_dir, f'input_tensor_{DATE}_with_flag.npy')
+        out_norm_path  = os.path.join(date_dir, f'normalized_tensor_{DATE}_with_flag.npy')
+        np.save(out_input_path, aug_input)
+        np.save(out_norm_path,  aug_norm)
+
+        print(f"● {DATE} → shapes: {aug_input.shape}, flag={weekend_hol_flag}")
+
+    print("▶ 모든 날짜 처리 완료")
