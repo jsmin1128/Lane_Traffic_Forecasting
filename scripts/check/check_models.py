@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-verify_models.py
+check_models.py
 
 목적: 기본 LSTM, ST-GCN, STGCNSegment 모델의 Forward PASS를
 더미 입력으로 검증합니다.
+사용법: python scripts/check/check_models.py
 """
+
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import torch
 import numpy as np

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-inspect_parquet.py
+check_parquet.py
 
 data/raw/turn.parquet 또는 다른 Parquet 디렉터리를 인자로 받아
 메타데이터와 샘플을 요약 출력합니다.
-usage: python inspect_parquet.py data/raw/turn.parquet
+usage: python scripts/check/check_parquet.py data/raw/turn.parquet
 """
 import sys
 from pathlib import Path
@@ -65,7 +65,7 @@ def inspect_parquet(parquet_dir: Path, n_sample: int = 5):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python inspect_parquet.py <parquet_dir>")
+        print("Usage: python scripts/check/check_parquet.py <parquet_dir>")
         sys.exit(1)
     parquet_dir = Path(sys.argv[1])
     if not parquet_dir.exists():

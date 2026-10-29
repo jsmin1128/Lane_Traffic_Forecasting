@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-etl_signal_parquet.py
+etl_signal.py
 
 부천시 신호데이터(CSV, XML) → Parquet
 • Mac 리소스포크(. _*) 자동 필터링
 • 제어문자·쓰레기값 없음
 • 원본 필드 100% 보존
 • 연구에 맞는 타입 캐스팅
-usage: python etl_signal_parquet.py
+usage: python scripts/etl/etl_signal.py <AI Hub 신호데이터 폴더>
 """
 from __future__ import annotations
 import re, glob, json
@@ -20,9 +20,24 @@ import dask.dataframe as dd
 from dask import delayed
 from dask.diagnostics import ProgressBar
 
-RAW_DIR     = "0_raw/신호데이터"
-OUT_DIR_CSV = "data/raw/signal_csv.parquet"
-OUT_DIR_XML = "data/raw/signal_xml.parquet"
+import argparse
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from traffic import config
+
+_parser = argparse.ArgumentParser(description='AI Hub 신호데이터(CSV, XML) → Parquet')
+_parser.add_argument('raw_dir', help="AI Hub '신호데이터' 폴더")
+_parser.add_argument('--out_csv', default=str(config.RAW_DIR / 'signal_csv.parquet'), help='출력 Parquet 폴더')
+_parser.add_argument('--out_xml', default=str(config.RAW_DIR / 'signal_xml.parquet'), help='출력 Parquet 폴더')
+_args = _parser.parse_args()
+
+RAW_DIR = _args.raw_dir
+OUT_DIR_CSV = _args.out_csv
+OUT_DIR_XML = _args.out_xml
 
 # ────────────────────────────────────────────────────────
 # 1) 전체 파일 목록 수집 & Mac 리소스포크(. _*) 필터링

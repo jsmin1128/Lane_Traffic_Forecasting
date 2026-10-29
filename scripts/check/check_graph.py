@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# inspect_adjacency.py
+# check_graph.py
 # -*- coding: utf-8 -*-
 
 """
@@ -8,6 +8,8 @@ processed/graph의 인접행렬 A_lane.npy와 lanes.txt를 검사 및 시각화�
 - lanes_list.txt, lane_pairs.txt 생성
 - NetworkX로 그래프 연결 상태 플롯
 - SUMO net XML에서 위치 정보 추출하여 노드 위치 지정
+
+사용법: python scripts/check/check_graph.py   (기본: data/raw/net, processed/graph)
 """
 
 import numpy as np
@@ -62,8 +64,8 @@ def inspect_adjacency(net_xml_path: Path, adj_path: Path, edges_path: Path, out_
 
     # 3) 노드/엣지 수 계산 및 출력
     N = A.shape[0]
-    total_links = int(A.sum())
-    non_self_links = total_links - N  # self-loop 제외
+    # A_lane은 정규화된 행렬(D^-1/2 Â D^-1/2)이라 값의 합이 아니라 0이 아닌 원소 수로 셉니다
+    non_self_links = int(np.count_nonzero(A)) - int(np.count_nonzero(np.diagonal(A)))  # self-loop 제외
     print(f"▶ 노드 수 N: {N}")
     print(f"▶ 엣지 수 (self-loop 제외): {non_self_links}")
 
@@ -170,28 +172,21 @@ def inspect_adjacency(net_xml_path: Path, adj_path: Path, edges_path: Path, out_
     plt.show()
 
 if __name__ == "__main__":
-    # 명령행 인자 처리: 
-    # 1) net_xml_path adj_path edges_path  (3개 인자)
-    # 2) adj_path edges_path                (2개 인자, 위치 정보 없이 시각화)
-    args = sys.argv[1:]
-    if len(args) == 3:
-        net_xml_path = Path(args[0])
-        adj_path = Path(args[1])
-        edges_path = Path(args[2])
-    elif len(args) == 2:
-        net_xml_path = None
-        adj_path = Path(args[0])
-        edges_path = Path(args[1])
-    else:
-        print("Usage: python inspect_adjacency.py [net_xml] adj_path edges_path")
-        exit(1)
+    import argparse
 
-    base = adj_path.parent
-    if not adj_path.exists() or not edges_path.exists():
-        print("❌ 파일을 찾을 수 없습니다:", adj_path, edges_path)
-        exit(1)
-    if net_xml_path is not None and not net_xml_path.exists():
-        print("❌ net XML 파일을 찾을 수 없습니다:", net_xml_path)
-        exit(1)
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from traffic import config
 
-    inspect_adjacency(net_xml_path, adj_path, edges_path, base)
+    p = argparse.ArgumentParser(description="Inspect the lane adjacency graph")
+    p.add_argument('--net',   type=Path, default=config.RAW_DIR / 'net' / 'bucheon.net.xml', help='SUMO net XML (노드 위치)')
+    p.add_argument('--adj',   type=Path, default=config.PROCESSED_DIR / 'graph' / 'A_lane.npy')
+    p.add_argument('--lanes', type=Path, default=config.PROCESSED_DIR / 'graph' / 'lanes.txt')
+    args = p.parse_args()
+
+    if not args.adj.exists() or not args.lanes.exists():
+        sys.exit(f"❌ 파일을 찾을 수 없습니다: {args.adj} {args.lanes}")
+    net_xml_path = args.net if args.net.exists() else None
+
+    inspect_adjacency(net_xml_path, args.adj, args.lanes, args.adj.parent)

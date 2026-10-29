@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-etl_indicator_parquet.py
+etl_indicator.py
 
-0_raw/지표데이터/*.csv ➜ data/raw/indicator.parquet
+AI Hub 지표데이터/*.csv ➜ data/raw/indicator.parquet
   • 원본 필드 100% 보존
   • Mac 리소스포크(. _*) 자동 필터링
   • 제어문자/쓰레기값(<NA>/NaN) 자동 제거
   • 연구에 맞춘 적절한 dtype 캐스팅
-usage: python etl_indicator_parquet.py
+usage: python scripts/etl/etl_indicator.py <AI Hub 지표데이터 폴더>
 """
 from __future__ import annotations
 import re, glob, json
@@ -19,8 +19,22 @@ import dask.dataframe as dd
 from dask import delayed
 from dask.diagnostics import ProgressBar
 
-RAW_DIR = "0_raw/지표데이터"
-OUT_DIR = "data/raw/indicator.parquet"
+import argparse
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from traffic import config
+
+_parser = argparse.ArgumentParser(description='AI Hub 지표데이터 CSV → Parquet')
+_parser.add_argument('raw_dir', help="AI Hub '지표데이터' 폴더")
+_parser.add_argument('--out_dir', default=str(config.RAW_DIR / 'indicator.parquet'), help='출력 Parquet 폴더')
+_args = _parser.parse_args()
+
+RAW_DIR = _args.raw_dir
+OUT_DIR = _args.out_dir
 
 # — 1) 모든 CSV 경로 수집 & Mac 리소스포크(. _*) 필터링
 all_csv = glob.glob(f"{RAW_DIR}/**/*.csv", recursive=True)

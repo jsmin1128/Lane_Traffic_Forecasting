@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-etl_od_parquet.py
+etl_od.py
 
 부천시 기종점 교통량 CSV → Parquet
  Mac 리소스포크 자동 필터링
  제어문자 제거
  원본 칼럼 100% 보존 + 메타칼럼 추가
  적절한 dtype 캐스팅
-usage: python etl_od_parquet.py
+usage: python scripts/etl/etl_od.py <AI Hub 교통량데이터(기종점교통량기반) 폴더>
 """
 from __future__ import annotations
 import re, glob, json
@@ -19,8 +19,22 @@ import dask.dataframe as dd
 from dask import delayed
 from dask.diagnostics import ProgressBar
 
-RAW_DIR   = "0_raw/교통량데이터(기종점교통량기반)"
-OUT_DIR   = "data/raw/od.parquet"
+import argparse
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from traffic import config
+
+_parser = argparse.ArgumentParser(description='AI Hub 기종점 교통량 CSV → Parquet')
+_parser.add_argument('raw_dir', help="AI Hub '교통량데이터(기종점교통량기반)' 폴더")
+_parser.add_argument('--out_dir', default=str(config.RAW_DIR / 'od.parquet'), help='출력 Parquet 폴더')
+_args = _parser.parse_args()
+
+RAW_DIR = _args.raw_dir
+OUT_DIR = _args.out_dir
 GLOB_PAT  = f"{RAW_DIR}/**/*.csv"
 
 # 제어문자/널 제거용 정규식

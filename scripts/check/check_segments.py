@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-test_mapping.py
+check_segments.py
 
-생성된 lane_to_segment_id .npy 파일을 검증하고,
-클러스터별 lane 개수 통계를 출력합니다.
+processed/graph/lane_to_segment_id_by_edge.npy (차로 → 세그먼트 매핑)를 검증하고,
+세그먼트별 차로 수 통계를 출력합니다.
+
+사용법: python scripts/check/check_segments.py
 """
+
+import sys
+from collections import Counter
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import numpy as np
 
+from traffic import config
+
 # 1) 매핑 파일 로드
-mapping = np.load('processed/graph/lane_to_segment_id_by_edge.npy')
-lanes   = open('processed/graph/lanes.txt').read().splitlines()
+graph_dir = config.PROCESSED_DIR / 'graph'
+mapping = np.load(graph_dir / 'lane_to_segment_id_by_edge.npy')
+lanes   = (graph_dir / 'lanes.txt').read_text().splitlines()
 
 assert mapping.ndim == 1, "매핑 배열이 일차원이 아닙니다."
 assert mapping.shape[0] == len(lanes), "lanes.txt 길이와 매핑 길이 불일치"
@@ -32,9 +46,8 @@ print(f"  Max lanes in one cluster : {counts.max()}")
 print(f"  Min lanes in one cluster : {counts.min()}")
 print(f"  Mean lanes per cluster   : {counts.mean():.2f}")
 
-# 4) 클러스터별 개수 분포 히스토그램 (간단한 텍스트 버전)
+# 4) 클러스터별 개수 분포 (간단한 텍스트 버전)
 print("\nCluster size distribution (size: count of clusters):")
-from collections import Counter
 dist = Counter(counts)
 for size, num in sorted(dist.items()):
     print(f"  {size:3d} lanes  → {num:3d} clusters")

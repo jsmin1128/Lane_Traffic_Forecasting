@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-tensor_inspect.py
+check_tensors.py
 
 생성된 input_tensor 및 normalized_tensor(.npy) 파일에 대해
 아래 정보를 상세히 추출하여 CSV로 저장하는 스크립트입니다.
@@ -22,16 +22,18 @@ import os
 import numpy as np
 import pandas as pd
 
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from traffic import config
+
 # 1) 검사할 날짜 리스트 및 기본 경로 설정
-DATE_LIST = [
-    20220810, 20220811, 20220812, 20220813, 20220814, 20220815,
-    20220819, 20220820, 20220821, 20220822, 20220823,
-    20220906, 20220907, 20220909, 20220910, 20220911,
-    20220912, 20220913, 20220914, 20220915, 20220916,
-    20220926, 20220928, 20220930, 20221001, 20221002,
-    20221026, 20221027, 20221028, 20221030, 20221031
-]
-BASE_DIR = 'processed/tensor/'  # 각 날짜별 폴더가 있는 디렉토리
+DATE_LIST = config.DATES
+BASE_DIR = str(config.PROCESSED_DIR / 'tensor')  # 각 날짜별 폴더가 있는 디렉토리
 FIELDS = ['input_tensor', 'normalized_tensor']
 
 # 2) 결과 저장용 리스트 초기화

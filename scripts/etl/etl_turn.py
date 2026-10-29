@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 부천시 회전교통량 XML ➜ Parquet (원본 필드 100 % 보존)
-usage: python etl_turn_parquet.py
+usage: python scripts/etl/etl_turn.py <AI Hub 교통량데이터(회전교통량기반) 폴더>
 """
 from __future__ import annotations
 import re
@@ -18,8 +18,22 @@ from dask.diagnostics import ProgressBar
 import dask
 
 # 원본 디렉토리, 출력 디렉토리
-RAW_DIR = Path("0_raw/교통량데이터(회전교통량기반)")
-OUT_DIR = Path("data/raw/turn.parquet")
+import argparse
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from traffic import config
+
+_parser = argparse.ArgumentParser(description='AI Hub 회전교통량 XML → Parquet')
+_parser.add_argument('raw_dir', help="AI Hub '교통량데이터(회전교통량기반)' 폴더")
+_parser.add_argument('--out_dir', default=str(config.RAW_DIR / 'turn.parquet'), help='출력 Parquet 폴더')
+_args = _parser.parse_args()
+
+RAW_DIR = Path(_args.raw_dir)
+OUT_DIR = Path(_args.out_dir)
 
 # Mac 리소스 포크나 숨김 파일 필터링: 실제 xml 파일만
 all_paths = glob.glob(str(RAW_DIR / "**" / "*.xml"), recursive=True)
