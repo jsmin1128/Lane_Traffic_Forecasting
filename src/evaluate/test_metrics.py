@@ -27,7 +27,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-from data_loader import get_dataloaders
+from traffic.data import get_dataloaders
 from model_io import MODELS, NOT_EVALUATED, latest_checkpoint, load_model, predict
 
 

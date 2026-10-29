@@ -22,7 +22,7 @@ C_flag = 1      # 주말/공휴일 플래그 채널 수
 # ─────────────────────────────────────────────────────────────────────────
 # 1) 전통적 LSTM 모델
 # ─────────────────────────────────────────────────────────────────────────
-from model.lstm_model import BasicLSTM
+from traffic.models.lstm import BasicLSTM
 
 C_lstm = C_traffic + C_flag
 # (B, C_in, T, N)
@@ -37,7 +37,7 @@ print("BasicLSTM Forward PASS 성공!  출력 shape:", y_lstm.shape)  # 예상: 
 # ─────────────────────────────────────────────────────────────────────────
 # 2) 원본 ST-GCN 모델
 # ─────────────────────────────────────────────────────────────────────────
-from model.stgcn_model import STGCN
+from traffic.models.stgcn import STGCN
 
 C_stgcn = C_traffic + C_flag
 x_stgcn = torch.randn(B, C_stgcn, T, N)
@@ -58,7 +58,7 @@ print("ST-GCN Forward PASS 성공!  출력 shape:", y_stgcn.shape)  # 예상: (B
 # ─────────────────────────────────────────────────────────────────────────
 # 3) ST-GCN + Segment 모델
 # ─────────────────────────────────────────────────────────────────────────
-from model.stgcn_segment import STGCNSegment
+from traffic.models.stgcn_segment import STGCNSegment
 
 C_seg = C_traffic + C_flag
 x_seg = torch.randn(B, C_seg, T, N)

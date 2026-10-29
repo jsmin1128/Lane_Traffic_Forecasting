@@ -27,7 +27,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from data_loader import get_dataloaders
+from traffic.data import get_dataloaders
 from model_io import LABELS, MODELS, NOT_EVALUATED, latest_checkpoint, load_model, predict
 
 NUM_SLOTS       = 288                       # 하루 5분 슬롯 수

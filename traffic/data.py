@@ -1,22 +1,23 @@
 # ┌──────────────────────────────────────────────────────────────────────────┐
-# │ data_loader.py                                                           │
+# │ traffic/data.py                                                          │
 # │                                                                          │
-# │ 목적: 전통적 LSTM, 원본 ST‐GCN, T‐GCN, DCRNN, 제안 모델(Gated 포함) 등 │
-# │ 모든 모델이 동일한 방식으로 데이터를 읽어올 수 있도록                   │
-# │ Dataset 클래스 및 DataLoader 생성 코드만 모아 두었습니다.               │
+# │ 목적: 모든 모델(LSTM, ST-GCN, ST-GCN + Segment)이 같은 방식으로         │
+# │ 데이터를 읽어올 수 있도록 Dataset 클래스와 DataLoader 생성 코드를       │
+# │ 모아 두었습니다.                                                         │
 # │                                                                          │
 # │ 사용 방법:                                                               │
-# │   from data_loader import get_dataloaders                                  │
-# │   train_loader, val_loader, test_loader = get_dataloaders(batch_size=4)   │
-# │                                                                          │
-# │ 파일 위치: traffic_project/data_loader.py                                 │
+# │   from traffic.data import get_dataloaders                               │
+# │   train_loader, val_loader, test_loader = get_dataloaders(batch_size=4)  │
 # └──────────────────────────────────────────────────────────────────────────┘
 
 import os
+from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import Optional
+
+from traffic import config
 
 class TrafficDataset(Dataset):
     """
@@ -89,17 +90,19 @@ class TrafficDataset(Dataset):
 
         return x_tensor, y_last, y_seq, idx, date  # idx는 원본 윈도우 인덱스, date는 정수형 날짜
 
-def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_memory: bool = True):
+def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_memory: bool = True,
+                    windows_dir=None):
     """
     ────────────────────────────────────────────────────────────────────────────
-    모든 모델(전통적 LSTM, ST-GCN, T-GCN, DCRNN, Gated 등)이 공통으로 사용하는
+    모든 모델(LSTM, ST-GCN, ST-GCN + Segment)이 공통으로 사용하는
     DataLoader를 생성해 주는 함수입니다.
 
     Args:
         batch_size (int): Mini-batch 크기. 모델 학습 시 batch_size=4 정도 권장.
         num_workers (int): DataLoader에 사용할 CPU 코어 수.
-                           None인 경우, os.cpu_count()//2 혹은 1로 자동 설정.
+                           None인 경우, min(4, os.cpu_count()//2)로 자동 설정. 0이면 메인 프로세스에서 읽음.
         pin_memory (bool): True면, GPU(pin_memory=True)용 고속 전송을 위해 사용.
+        windows_dir: all_X.npy 등이 있는 폴더 (기본: processed/windows)
 
     Returns:
         train_loader, val_loader, test_loader (tuple of DataLoader)
@@ -110,10 +113,10 @@ def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_
     # ─────────────────────────────────────────────────────────────────────────
     # 1) 윈도우 데이터: all_X.npy (shape=(8556,12,1370,C)) 
     #                   all_Y.npy (shape=(8556,1370,8))
-    data_windows_dir = os.path.join('processed', 'windows')
-    x_path = os.path.join(data_windows_dir, 'all_X.npy')
-    y_path = os.path.join(data_windows_dir, 'all_Y.npy')
-    date_path = os.path.join(data_windows_dir, 'all_DATE.npy')
+    data_windows_dir = Path(windows_dir) if windows_dir else config.PROCESSED_DIR / 'windows'
+    x_path = data_windows_dir / 'all_X.npy'
+    y_path = data_windows_dir / 'all_Y.npy'
+    date_path = data_windows_dir / 'all_DATE.npy'
 
     if not os.path.exists(x_path) or not os.path.exists(y_path) or not os.path.exists(date_path):
         raise FileNotFoundError(f"all_X.npy 또는 all_Y.npy 또는 all_DATE파일을 찾을 수 없습니다:\n"
@@ -150,42 +153,22 @@ def get_dataloaders(batch_size: int = 4, num_workers: Optional[int] = None, pin_
         cpu_cnt = os.cpu_count() or 1
         num_workers = min(4, cpu_cnt // 2)
 
-    # prefetch_factor (파이프라인 성능 관련)
-    prefetch = 4 if batch_size < 8 else 2
+    loader_kw = dict(batch_size=batch_size,
+                     num_workers=num_workers,
+                     pin_memory=pin_memory and torch.cuda.is_available())
+    # prefetch_factor·persistent_workers는 작업자 프로세스가 있을 때만 쓸 수 있음
+    if num_workers > 0:
+        loader_kw.update(prefetch_factor=4 if batch_size < 8 else 2,   # 파이프라인 성능 관련
+                         persistent_workers=True)
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        shuffle=True,
-        drop_last=True,
-        num_workers=num_workers,
-        pin_memory=pin_memory and torch.cuda.is_available(),
-        prefetch_factor=prefetch,
-        persistent_workers=True
-    )
-    val_loader = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_memory and torch.cuda.is_available(),
-        prefetch_factor=prefetch,
-        persistent_workers=True
-    )
-    test_loader = DataLoader(
-        test_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_memory and torch.cuda.is_available(),
-        prefetch_factor=prefetch,
-        persistent_workers=True
-    )
+    train_loader = DataLoader(train_ds, shuffle=True, drop_last=True, **loader_kw)
+    val_loader   = DataLoader(val_ds,   shuffle=False, **loader_kw)
+    test_loader  = DataLoader(test_ds,  shuffle=False, **loader_kw)
 
     return train_loader, val_loader, test_loader
 
 
 if __name__ == '__main__':
     # 스크립트를 직접 실행했을 때, 간단한 확인 메시지 출력
-    print("data_loader.py가 성공적으로 로드되었습니다.")
+    print("traffic/data.py가 성공적으로 로드되었습니다.")
     print("get_dataloaders() 함수를 통해 train/val/test DataLoader를 생성하세요.")

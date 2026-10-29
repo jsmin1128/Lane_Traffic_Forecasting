@@ -11,7 +11,7 @@ verify_data_loader.py
 
 import torch
 import numpy as np
-from data_loader import get_dataloaders
+from traffic.data import get_dataloaders
 
 def main():
     batch_size = 4

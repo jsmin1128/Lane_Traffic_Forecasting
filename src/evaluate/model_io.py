@@ -13,8 +13,8 @@ import sys
 import numpy as np
 import torch
 
-from model.lstm_model import BasicLSTM
-from model.stgcn_model import STGCN
+from traffic.models.lstm import BasicLSTM
+from traffic.models.stgcn import STGCN
 
 MODELS = ['lstm', 'stgcn', 'stgcn_segment']
 LABELS = {'lstm': 'LSTM', 'stgcn': 'ST-GCN', 'stgcn_segment': 'ST-GCN + Segment'}

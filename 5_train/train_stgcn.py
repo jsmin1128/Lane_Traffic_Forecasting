@@ -32,8 +32,8 @@ from tqdm import tqdm
 # ─────────────────────────────────────────────────────────────
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
-from data_loader import get_dataloaders
-from model.stgcn_model import STGCN
+from traffic.data import get_dataloaders
+from traffic.models.stgcn import STGCN
 
 
 # ─────────────────────────────────────────────────────────────

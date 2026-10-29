@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from model.stgcn_model import STGCNLayer, GraphConv
+from traffic.models.stgcn import STGCNLayer, GraphConv
 from typing import Optional
 
 class STGCN_Base(nn.Module):
