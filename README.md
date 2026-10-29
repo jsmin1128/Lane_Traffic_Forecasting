@@ -101,7 +101,7 @@ python scripts/build_dataset.py flags windows    # 일부 단계만 (뒤 단계�
 | graph | `graph/lanes.txt`, `A_lane.npy` | 차로 목록, 정규화된 차로 인접행렬 (1370×1370) |
 | segments | `graph/lane_to_segment_id_by_edge.npy` | 차로 → 세그먼트(88개) 매핑 |
 | tensors | `tensor/<날짜>/input_tensor_<날짜>.npy`, `normalized_tensor_<날짜>.npy` | 날짜별 (288 슬롯, 1370 차로, 8채널), 정규화는 날짜·채널별 z-score |
-| flags | `tensor/<날짜>/*_with_flag.npy` | 주말·공휴일 플래그 채널 추가 (9채널) |
+| flags | `tensor/<날짜>/normalized_tensor_<날짜>_with_flag.npy` | 정규화 텐서에 주말·공휴일 플래그 채널 추가 (9채널) |
 | windows | `windows/all_X.npy`, `all_Y.npy`, `all_DATE.npy` | X (8556, 12, 1370, 9), Y (8556, 1370, 8) |
 
 8채널은 차종 4종(승용, 버스, 트럭, 오토바이)별 대기 차량 수와 평균 속도입니다. 윈도우는 시간 순서대로

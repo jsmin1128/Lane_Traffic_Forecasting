@@ -8,7 +8,7 @@ data/raw → processed/ 전처리를 순서대로 실행합니다 (전체 약 5�
   1) graph     도로망 → 차로 목록 lanes.txt, 정규화된 인접행렬 A_lane.npy        (processed/graph)
   2) segments  차로 → 세그먼트 매핑 lane_to_segment_id_by_edge.npy               (processed/graph)
   3) tensors   od.parquet → 날짜별 input_tensor·normalized_tensor              (processed/tensor)
-  4) flags     날짜별 텐서에 주말·공휴일 플래그 채널 추가 → *_with_flag.npy       (processed/tensor)
+  4) flags     정규화 텐서 + 주말·공휴일 플래그 → normalized_tensor_*_with_flag.npy (processed/tensor)
   5) windows   학습 입력 all_X.npy, all_Y.npy, all_DATE.npy                     (processed/windows)
 
 Usage (저장소 루트에서 실행):
