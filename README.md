@@ -6,11 +6,11 @@ LSTM, ST-GCN, ST-GCN + Segment 세 모델을 하나씩 학습·비교합니다.
 
 ## 요구 사항
 
-| 항목 | 버전 |
-|---|---|
-| Python | 3.13 |
-| PyTorch | 2.13.0+cu126 |
-| GPU | 선택 (CUDA가 있으면 자동 사용, 없으면 CPU) |
+| 항목    | 버전                                       |
+| ------- | ------------------------------------------ |
+| Python  | 3.13                                       |
+| PyTorch | 2.13.0+cu126                               |
+| GPU     | 선택 (CUDA가 있으면 자동 사용, 없으면 CPU) |
 
 ## 설치
 
@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ## 빠른 시작
 
 ```bash
-# 1. 데이터 받기: Google Drive의 zip을 data/raw/에 압축 해제 (아래 "데이터 준비" 참고)
+# 1. 데이터를 data/raw/에 배치 (아래 "데이터 준비" 참고)
 
 # 2. 전처리: data/raw → processed/ (약 1분)
 python scripts/build_dataset.py
@@ -66,12 +66,7 @@ python scripts/evaluate.py stgcn
 
 ## 데이터 준비
 
-[Google Drive](https://drive.google.com/file/d/1kVC92ZN-4AOmYMBl6JRvECfy7RZVrzdB/view?usp=sharing)에서 `Lane_Traffic_Forecasting.zip`(약 3.2GB)을 받아
-`data/raw/`에 압축을 풉니다:
-
-```bash
-unzip Lane_Traffic_Forecasting.zip -d data/raw
-```
+[Google Drive](https://drive.google.com/file/d/1kVC92ZN-4AOmYMBl6JRvECfy7RZVrzdB/view?usp=sharing)에서 받아 `data/raw/`에 둡니다.
 
 ```text
 data/raw/
@@ -93,12 +88,12 @@ python scripts/build_dataset.py                    # 4단계 전부 (약 1분)
 python scripts/build_dataset.py tensors windows    # 일부 단계만 (뒤 단계는 앞 단계 결과를 읽음)
 ```
 
-| 단계 | 하는 일 |
-|---|---|
-| graph | 도로망에서 차로 1,370개와 차로 사이 연결을 읽어 정규화된 인접행렬을 만듦 |
-| segments | 도로를 5개씩 묶어 차로마다 세그먼트 번호(88개)를 매김 |
-| tensors | od 기록을 날짜 × 5분 슬롯 × 차로 × 8채널로 집계하고, 날짜·채널별 z-score로 정규화 |
-| windows | 하루 안에서 과거 12스텝 입력과 다음 5분 정답을 잘라 학습 샘플을 만들고, 주말·공휴일 플래그를 붙임 |
+| 단계     | 하는 일                                                                                            |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| graph    | 도로망에서 차로 1,370개와 차로 사이 연결을 읽어 정규화된 인접행렬을 만듦                           |
+| segments | 도로를 5개씩 묶어 차로마다 세그먼트 번호(88개)를 매김                                              |
+| tensors  | od 기록을 날짜 × 5분 슬롯 × 차로 × 8채널로 집계하고, 날짜·채널별 z-score로 정규화              |
+| windows  | 하루 안에서 과거 12스텝 입력과 다음 5분 정답을 잘라 학습 샘플을 만들고, 주말·공휴일 플래그를 붙임 |
 
 8채널은 차종 4종(승용, 버스, 트럭, 오토바이)별 대기 차량 수와 평균 속도입니다. 생성 파일:
 
@@ -132,27 +127,27 @@ python scripts/train.py stgcn --epochs 80 --lr 1e-3   # 모델별 기본값 덮�
 
 주요 옵션:
 
-| 옵션 | 기본값 | 설명 |
-|---|---|---|
-| `model` (위치 인자) | — | 학습할 모델 하나 (아래 3개 중) |
-| `--epochs` | 모델별 설정 | 에폭 수 |
-| `--batch` | `8` | 배치 크기 |
-| `--lr` | `5e-4` | 학습률 (Adam, weight decay 1e-4) |
-| `--clip` | `5.0` | gradient clipping (0이면 끔) |
-| `--save_freq` | `5` | N 에폭마다 체크포인트 저장 (검증 MSE가 좋아진 에폭도 저장) |
-| `--patience` | 모델별 설정 | 검증 MSE가 N 에폭 동안 좋아지지 않으면 조기 종료 |
-| `--sched` | `plateau` | LR 스케줄러 (`plateau`, `cosine`) |
-| `--workers` | 자동 | DataLoader 작업자 수 (0이면 메인 프로세스) |
+| 옵션                  | 기본값      | 설명                                                       |
+| --------------------- | ----------- | ---------------------------------------------------------- |
+| `model` (위치 인자) | —          | 학습할 모델 하나 (아래 3개 중)                             |
+| `--epochs`          | 모델별 설정 | 에폭 수                                                    |
+| `--batch`           | `8`       | 배치 크기                                                  |
+| `--lr`              | `5e-4`    | 학습률 (Adam, weight decay 1e-4)                           |
+| `--clip`            | `5.0`     | gradient clipping (0이면 끔)                               |
+| `--save_freq`       | `5`       | N 에폭마다 체크포인트 저장 (검증 MSE가 좋아진 에폭도 저장) |
+| `--patience`        | 모델별 설정 | 검증 MSE가 N 에폭 동안 좋아지지 않으면 조기 종료           |
+| `--sched`           | `plateau` | LR 스케줄러 (`plateau`, `cosine`)                      |
+| `--workers`         | 자동        | DataLoader 작업자 수 (0이면 메인 프로세스)                 |
 
 모델에 없는 옵션을 주면 에러로 멈춥니다 (예: `train.py lstm --hidden 32`).
 
 ### 학습 가능한 모델 3개
 
-| 모델 | 파라미터 | 구조 | 기본 설정 | 전용 옵션 |
-|---|---|---|---|---|
-| `lstm` | 19K | 차로마다 같은 LSTM으로 과거 1시간을 봄 (도로 연결·플래그 안 씀) | 40에폭, 조기 종료 10 | `--hidden_dim` `--num_layers` `--dropout` |
-| `stgcn` | 54K | 시간 합성곱 + 그래프 합성곱 블록 2개 | 40에폭, 조기 종료 10 | `--hidden` |
-| `stgcn_segment` | 586K | ST-GCN 예측에 세그먼트별 보정값(NetVLAD + Cluster-LSTM)을 더함 | 30에폭, 조기 종료 없음 | `--hidden_lstm` `--horizon` `--cluster_map` |
+| 모델              | 파라미터 | 구조                                                             | 기본 설정              | 전용 옵션                                         |
+| ----------------- | -------- | ---------------------------------------------------------------- | ---------------------- | ------------------------------------------------- |
+| `lstm`          | 19K      | 차로마다 같은 LSTM으로 과거 1시간을 봄 (도로 연결·플래그 안 씀) | 40에폭, 조기 종료 10   | `--hidden_dim` `--num_layers` `--dropout`   |
+| `stgcn`         | 54K      | 시간 합성곱 + 그래프 합성곱 블록 2개                             | 40에폭, 조기 종료 10   | `--hidden`                                      |
+| `stgcn_segment` | 586K     | ST-GCN 예측에 세그먼트별 보정값(NetVLAD + Cluster-LSTM)을 더함   | 30에폭, 조기 종료 없음 | `--hidden_lstm` `--horizon` `--cluster_map` |
 
 > `stgcn_segment`는 학습 코드에 정답 누설이 있어 평가에서 제외합니다 (`evaluate.py`는 학습 곡선만 그림).
 
