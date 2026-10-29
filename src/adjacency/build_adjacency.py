@@ -194,9 +194,9 @@ def main():
 
     # 5) 결과 저장
     print("▶ 결과 저장 중...")
-    np.save(out_dir / "A.npy", A_norm)                  # NumPy 바이너리
-    A_sparse = sp.csr_matrix(A_norm)                    
-    sp.save_npz(out_dir / "A.npz", A_sparse)             # Sparse 형식
+    np.save(out_dir / "A_lane.npy", A_norm)             # NumPy 바이너리
+    A_sparse = sp.csr_matrix(A_norm)
+    sp.save_npz(out_dir / "A_lane.npz", A_sparse)        # Sparse 형식
     # lane ID를 파일로 저장 (lanes.txt)
     with open(out_dir / "lanes.txt", "w", encoding="utf-8") as f:
         for lid in lanes:
@@ -205,7 +205,7 @@ def main():
     # 6) 최종 검증 정보 출력
     N_final = A_norm.shape[0]
     nonzero_links = int(np.sum(A_norm > 0)) - N_final  # self-loop 제외
-    print(f"[완료] 저장된 파일: {out_dir}/A.npy, A.npz, lanes.txt")
+    print(f"[완료] 저장된 파일: {out_dir}/A_lane.npy, A_lane.npz, lanes.txt")
     print(f"  • A_norm shape: {A_norm.shape}")
     print(f"  • self-loop 제외 nonzero link 수: {nonzero_links}")
     print(f"  • Sample lanes: {lanes[:5]}")

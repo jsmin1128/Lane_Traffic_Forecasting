@@ -16,15 +16,12 @@ generate_tensors.py
 
 출력 파일 예시:
     - processed/tensor/20220810/input_tensor_20220810.npy
-    - processed/tensor/20220810/input_tensor_20220810.pkl
     - processed/tensor/20220810/normalized_tensor_20220810.npy
-    - processed/tensor/20220810/normalized_tensor_20220810.pkl
 """
 
 import os
 import pandas as pd
 import numpy as np
-import pickle
 import warnings
 
 # 경고 메시지 감추기
@@ -74,7 +71,7 @@ def process_date(date: int):
       1) Parquet에서 해당 날짜 데이터 로드
       2) 전처리 → 입력 텐서(input_tensor) 생성
       3) Z-Score 정규화 → normalized_tensor 생성
-      4) input_tensor 및 normalized_tensor를 .npy/.pkl로 저장
+      4) input_tensor 및 normalized_tensor를 .npy로 저장
     """
     print(f"\n========== Processing Date: {date} ==========")
     # ──────────────────────────────────────────────────────────────────────────
@@ -196,15 +193,12 @@ def process_date(date: int):
     print("    ✔ input_tensor validation passed")
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 11) input_tensor 저장 (.npy, .pkl)
+    # 11) input_tensor 저장 (.npy)
     # ──────────────────────────────────────────────────────────────────────────
     print("11) Saving input_tensor")
     input_npy_path = os.path.join(date_dir, f'input_tensor_{date}.npy')
-    input_pkl_path = os.path.join(date_dir, f'input_tensor_{date}.pkl')
     np.save(input_npy_path, input_tensor)
-    with open(input_pkl_path, 'wb') as f:
-        pickle.dump(input_tensor, f)
-    print(f"    ▶ Saved: {input_npy_path}, {input_pkl_path}")
+    print(f"    ▶ Saved: {input_npy_path}")
 
     # ──────────────────────────────────────────────────────────────────────────
     # 12) 채널별 통계(평균·표준편차) 계산
@@ -244,15 +238,12 @@ def process_date(date: int):
             print(f"    ▶ Warning: 채널 {ch} 정규화 통계 이상 (mean={mean_ch:.4f}, std={std_ch:.4f})")
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 14) normalized_tensor 저장 (.npy, .pkl)
+    # 14) normalized_tensor 저장 (.npy)
     # ──────────────────────────────────────────────────────────────────────────
     print("14) Saving normalized_tensor")
     norm_npy_path = os.path.join(date_dir, f'normalized_tensor_{date}.npy')
-    norm_pkl_path = os.path.join(date_dir, f'normalized_tensor_{date}.pkl')
     np.save(norm_npy_path, normalized_tensor)
-    with open(norm_pkl_path, 'wb') as f:
-        pickle.dump(normalized_tensor, f)
-    print(f"    ▶ Saved: {norm_npy_path}, {norm_pkl_path}")
+    print(f"    ▶ Saved: {norm_npy_path}")
 
     print(f"========== Completed Date: {date} ==========\n")
 

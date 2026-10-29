@@ -10,7 +10,6 @@ input_tensor 및 normalized_tensor(.npy)에 “주말 또는 공휴일” 플래
 import numpy as np
 import pandas as pd
 import os
-import pickle
 import holidays  # pip install holidays
 
 # 한국 공휴일 캘린더 (연도 자동 확장)
@@ -65,10 +64,6 @@ for DATE in DATE_LIST:
     out_norm_path  = os.path.join(date_dir, f'normalized_tensor_{DATE}_with_flag.npy')
     np.save(out_input_path, aug_input)
     np.save(out_norm_path,  aug_norm)
-    with open(os.path.join(date_dir, f'input_tensor_{DATE}_with_flag.pkl'), 'wb') as f:
-        pickle.dump(aug_input, f)
-    with open(os.path.join(date_dir, f'normalized_tensor_{DATE}_with_flag.pkl'), 'wb') as f:
-        pickle.dump(aug_norm, f)
 
     print(f"● {DATE} → shapes: {aug_input.shape}, flag={weekend_hol_flag}")
 
