@@ -1,86 +1,78 @@
 """
-차로 → 세그먼트 매핑(lane_to_segment_id_by_edge.npy)을 만듭니다. ST-GCN + Segment 모델이 씁니다.
+차로 → 세그먼트 매핑을 만듭니다 → lane_to_segment_id_by_edge.npy (ST-GCN + Segment 모델이 씀)
 
-SUMO .net.xml에서 edge 연결을 읽어, 이어진 edge들(연결 컴포넌트)을 방문 순서대로
-최대 max_group_size개씩 묶어 세그먼트로 만들고, lanes.txt 순서대로 lane마다 세그먼트 ID를 매깁니다.
-이웃 edge를 정렬된 순서로 방문하므로 실행할 때마다 같은 결과가 나옵니다.
+  결과: lanes.txt 순서의 int32 배열 (길이 N). 값 = 그 차로가 속한 세그먼트 번호 (0부터)
+
+만드는 순서
+  1) 이웃 도로: 도로 a가 끝나는 교차로에서 도로 b가 시작하면 a와 b를 서로 이웃으로 봅니다.
+  2) 도로를 너비 우선 탐색(BFS)으로 방문하고, 방문한 순서대로 group_size개씩 끊어 세그먼트로 묶습니다.
+     가까운 도로끼리 같은 세그먼트가 됩니다. 이웃은 ID 순으로 방문하므로 실행할 때마다 결과가 같습니다.
+  3) 차로는 자기 도로의 세그먼트를 따릅니다 (SUMO 차로 ID = <도로 ID>_<차로 번호>).
+  4) lanes.txt에 나오는 세그먼트만 남기고 0부터 번호를 다시 매깁니다.
 """
 
-import xml.etree.ElementTree as ET
+import math
 from collections import defaultdict, deque
 from pathlib import Path
 
 import numpy as np
+from lxml import etree
 
 
-def build_segments(net_xml, lanes_path, out_path, max_group_size):
-    M = max_group_size
+def read_edges(net_xml):
+    """net.xml → {도로 ID: (시작 교차로, 끝 교차로)} (교차로 내부 도로 제외)"""
+    root = etree.parse(str(net_xml)).getroot()
+    return {edge.get('id'): (edge.get('from'), edge.get('to'))
+            for edge in root.iter('edge')
+            if not edge.get('id').startswith(':') and edge.get('function') != 'internal'}
 
-    # 1) .net.xml 파싱
-    root = ET.parse(str(net_xml)).getroot()
 
-    # 2) edge 정보 수집: id, from-node, to-node
-    edge_info = {}
-    for edge in root.findall('.//edge'):
-        eid  = edge.get('id')
-        src  = edge.get('from')
-        dst  = edge.get('to')
-        edge_info[eid] = (src, dst)
+def bfs_order(first, neighbors, visited):
+    """first와 이어진 도로들을 가까운 순서(BFS)로 방문한 목록"""
+    order, queue = [], deque([first])
+    visited.add(first)
+    while queue:
+        edge = queue.popleft()
+        order.append(edge)
+        for nb in sorted(neighbors[edge]):
+            if nb not in visited:
+                visited.add(nb)
+                queue.append(nb)
+    return order
 
-    # 3) 인접성 그래프 생성 (방향 고려)
+
+def group_edges(edges, group_size):
+    """{도로 ID: (시작, 끝)} → {도로 ID: 세그먼트 번호}"""
+    # 이웃 도로: a의 끝 교차로 = b의 시작 교차로
+    starts_at = defaultdict(list)
+    for edge, (start, _) in edges.items():
+        starts_at[start].append(edge)
     neighbors = defaultdict(set)
-    for e1, (s1, d1) in edge_info.items():
-        for e2, (s2, d2) in edge_info.items():
-            if d1 == s2:
-                neighbors[e1].add(e2)
-                neighbors[e2].add(e1)
+    for a, (_, end) in edges.items():
+        for b in starts_at[end]:
+            neighbors[a].add(b)
+            neighbors[b].add(a)
 
-    # 4) 연결 컴포넌트별로 최대 M개씩 sub-group으로 나눔
-    visited = set()
-    segment_id = {}
-    seg_counter = 0
-    for eid in edge_info:
-        if eid in visited:
+    segment_of, visited, n_segments = {}, set(), 0
+    for first in edges:
+        if first in visited:
             continue
-        comp = []
-        dq = deque([eid])
-        visited.add(eid)
-        while dq:
-            cur = dq.popleft()
-            comp.append(cur)
-            for nb in sorted(neighbors[cur]):   # 정렬해서 방문 → 실행할 때마다 같은 결과
-                if nb not in visited:
-                    visited.add(nb)
-                    dq.append(nb)
-        # comp 내에서 M개씩 끊어서 ID 할당
-        for i in range(0, len(comp), M):
-            for e in comp[i:i+M]:
-                segment_id[e] = seg_counter
-            seg_counter += 1
+        order = bfs_order(first, neighbors, visited)    # 서로 이어진 도로 덩어리 하나
+        for i, edge in enumerate(order):
+            segment_of[edge] = n_segments + i // group_size
+        n_segments += math.ceil(len(order) / group_size)
+    return segment_of
 
-    # 5) lanes.txt 읽고 lane→edge→segment 매핑
-    with open(lanes_path) as f:
-        lanes = [ln.strip() for ln in f if ln.strip()]
 
-    mapping = np.zeros(len(lanes), dtype=np.int32)
-    for i, lid in enumerate(lanes):
-        base_edge = lid.rsplit('_', 1)[0]       # e.g. "edgeID_0" → "edgeID"
-        mapping[i] = segment_id.get(base_edge, -1)
+def build_segments(net_xml, lanes_path, out_path, group_size):
+    """net.xml + lanes.txt → out_path (차로별 세그먼트 번호)"""
+    segment_of = group_edges(read_edges(net_xml), group_size)
 
-    # 6) 빈 클러스터(사용되지 않은 segment ID) 제거하고
-    #    0 이상 ID만 0부터 연속된 ID로 재할당
-    used_ids = sorted({sid for sid in mapping.tolist() if sid >= 0})
-    new_id_map = {old: new for new, old in enumerate(used_ids)}
-    mapping_compressed = np.array(
-        [new_id_map[sid] if sid >= 0 else -1 for sid in mapping],
-        dtype=np.int32
-    )
+    lanes = Path(lanes_path).read_text(encoding='utf-8').split()
+    segments = [segment_of[lane.rsplit('_', 1)[0]] for lane in lanes]   # 차로 → 자기 도로의 세그먼트
+    _, mapping = np.unique(segments, return_inverse=True)                # 쓰인 번호만 0부터 다시
 
-    # 7) 결과 저장 및 요약 출력
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
-    np.save(out_path, mapping_compressed)
-    print(f"저장 완료: '{out_path}'")
-    print(f"총 lanes: {len(lanes)}")
-    print(f"원본 segment 개수: {seg_counter}")
-    print(f"사용된 segment (압축 후) 개수: {len(used_ids)}")
-    print("예시 (first 5):", mapping_compressed[:5].tolist())
+    np.save(out_path, mapping.astype(np.int32))
+    sizes = np.bincount(mapping)
+    print(f"▶ 세그먼트 {len(sizes)}개 (도로 {group_size}개씩, 세그먼트당 차로 {sizes.min()}~{sizes.max()}개) → {out_path}")
