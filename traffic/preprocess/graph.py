@@ -1,187 +1,72 @@
 """
-도로망(SUMO net.xml)에서 차로 단위 그래프를 만듭니다.
+도로망(SUMO net.xml)으로 차로 그래프를 만듭니다 → <out_dir>/lanes.txt, A_lane.npy
 
-  • A_lane.npy / A_lane.npz : 정규화된 차로 인접행렬 D^-1/2 Â D^-1/2 (N×N, self-loop 포함)
-  • lanes.txt               : 차로 ID 목록 (길이 N, 행렬의 행 순서)
+  lanes.txt   그래프의 노드 = 차로 ID 목록. 이 순서가 텐서와 모델의 차로 순서입니다.
+  A_lane.npy  정규화된 인접행렬 (N×N, float32). A[i, j] > 0 이면 차로 i에서 차로 j로 갈 수 있습니다.
 
-edge의 모든 lane ↔ 연결된 edge의 모든 lane 쌍으로 가중치를 누적하고,
-연결이 하나도 없는 고립 lane은 제외합니다.
+만드는 순서
+  1) 노드: 일반 도로(edge)의 차로. 교차로 내부 도로(id가 ':'로 시작)는 뺍니다.
+  2) 링크: <connection from="도로 a" to="도로 b">마다 a의 모든 차로 → b의 모든 차로에 +1
+           (방향 있음, 차로별 회전 방향은 구분하지 않음)
+  3) 링크가 하나도 없는 고립 차로는 뺍니다.
+  4) 대각선(자기 자신 연결)을 1로 채우고 D^-1/2 · A · D^-1/2 로 정규화합니다 (D = 행 합).
 """
 
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
-import scipy.sparse as sp
 from lxml import etree
 
 
-def parse_adjacency(net_xml_path, directed=True):
-    """
-    lane 단위로 인접행렬을 생성합니다.
+def read_lanes_and_links(net_xml):
+    """net.xml → (차로 ID 목록, {(출발 차로, 도착 차로): 연결 수})"""
+    root = etree.parse(str(net_xml)).getroot()
 
-    Args:
-      net_xml_path: SUMO 네트워크 XML 파일 경로 (예: 'data/raw/net/bucheon.net.xml')
-      directed: True면 방향 그래프, False면 무향 그래프
-
-    Returns:
-      - A: np.ndarray, shape=(N, N) 인접행렬 (self-loop 포함된 상태)
-      - lanes: List[str], 길이 N (lane ID 리스트, 원본 순서 유지)
-    """
-
-    # 1) XML 파싱
-    tree = etree.parse(net_xml_path)
-
-    # 2) lane ID 리스트 수집 (internal/junction 제외)
-    lanes = []
-    for edge in tree.findall('.//edge'):
-        eid  = edge.get('id')
-        func = (edge.get('function') or '').lower()
-        # ':'로 시작하거나 'internal' 기능(edge)인 경우 스킵
-        if eid.startswith(':') or func == 'internal':
+    # 도로 ID → 그 도로의 차로 ID들 (교차로 내부 도로 제외)
+    edge_lanes = {}
+    for edge in root.iter('edge'):
+        if edge.get('id').startswith(':') or edge.get('function') == 'internal':
             continue
-        # edge 요소 아래의 모든 lane 태그에서 id 수집
-        for lane in edge.findall('lane'):
-            lanes.append(lane.get('id'))
+        edge_lanes[edge.get('id')] = [lane.get('id') for lane in edge.findall('lane')]
+    lanes = [lane for lane_ids in edge_lanes.values() for lane in lane_ids]
 
-    N = len(lanes)
-    lane_index = {lid: idx for idx, lid in enumerate(lanes)}
-
-    # 3) lane-level 연결 가중치 누적
-    weight_dict = {}
-    for conn in tree.findall('.//connection'):
-        fe = conn.get('from')  # from-edge ID
-        te = conn.get('to')    # to-edge ID
-        # internal/junction 연결 제외
-        if fe.startswith(':') or te.startswith(':'):
-            continue
-
-        # from-edge에 속한 모든 lane ID 목록
-        from_edge_elem = tree.find(f".//edge[@id='{fe}']")
-        if from_edge_elem is None:
-            continue
-        from_lanes = [l.get('id') for l in from_edge_elem.findall('lane')]
-
-        # to-edge에 속한 모든 lane ID 목록
-        to_edge_elem = tree.find(f".//edge[@id='{te}']")
-        if to_edge_elem is None:
-            continue
-        to_lanes = [l.get('id') for l in to_edge_elem.findall('lane')]
-
-        # “edge의 모든 lane ↔ edge의 모든 lane” 쌍으로 가중치 누적
-        for fl in from_lanes:
-            for tl in to_lanes:
-                i = lane_index.get(fl)
-                j = lane_index.get(tl)
-                if i is None or j is None:
-                    continue
-                weight_dict[(i, j)] = weight_dict.get((i, j), 0) + 1
-
-    # 4) 인접행렬 A 생성
-    A = np.zeros((N, N), dtype=np.float32)
-    for (i, j), w in weight_dict.items():
-        A[i, j] = w
-
-    # 5) directed=False인 경우 무향 처리 (A = max(A, A^T))
-    if not directed:
-        A = np.maximum(A, A.T)
-
-    # 6) self-loop 추가 (만약 대각 원소가 0인 경우)
-    for idx in range(N):
-        if A[idx, idx] == 0:
-            A[idx, idx] = 1.0
-
-    return A, lanes
+    # 도로 a → 도로 b 연결마다 a의 모든 차로 → b의 모든 차로에 +1
+    links = Counter()
+    for conn in root.iter('connection'):
+        a, b = conn.get('from'), conn.get('to')
+        if a in edge_lanes and b in edge_lanes:
+            for src in edge_lanes[a]:
+                for dst in edge_lanes[b]:
+                    links[src, dst] += 1
+    return lanes, links
 
 
-def get_normalized_adjacency(A: np.ndarray):
-    """
-    정규화된 인접행렬을 반환합니다:
-      Â = A + I (self-loop 포함 가정)
-      D = diag(degree(Â))
-      A_norm = D^{-1/2} Â D^{-1/2}
-    """
-    if not isinstance(A, np.ndarray):
-        raise TypeError("Input A must be numpy ndarray.")
+def normalized_adjacency(lanes, links):
+    """lanes 순서로 N×N 인접행렬을 채운 뒤 D^-1/2 · A · D^-1/2 로 정규화합니다."""
+    index = {lane: i for i, lane in enumerate(lanes)}
+    A = np.zeros((len(lanes), len(lanes)), dtype=np.float32)
+    for (src, dst), count in links.items():
+        A[index[src], index[dst]] = count   # A[출발, 도착]
+    np.fill_diagonal(A, 1.0)                # 자기 자신 연결
 
-    # degree 벡터
-    deg = A.sum(axis=1)
-    # D^{-1/2} 계산 (0인 경우 0으로 처리)
-    with np.errstate(divide='ignore'):
-        d_inv_sqrt = 1.0 / np.sqrt(deg)
-    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.0
-
-    # D^{-1/2} 행렬
-    D_inv_sqrt = np.diag(d_inv_sqrt)
-    # 정규화된 adjacency
-    A_norm = D_inv_sqrt @ A @ D_inv_sqrt
-    return A_norm
+    d = 1.0 / np.sqrt(A.sum(axis=1))        # D^-1/2 (대각선이 1이라 행 합은 1 이상)
+    return d[:, None] * A * d[None, :]
 
 
 def build_graph(net_xml, out_dir):
-    """net.xml → out_dir/A_lane.npy, A_lane.npz, lanes.txt"""
-    net_xml = str(net_xml)
+    """net.xml → out_dir/lanes.txt, A_lane.npy"""
+    lanes, links = read_lanes_and_links(net_xml)
+
+    # 고립 차로(링크가 하나도 없는 차로) 빼기
+    linked = {lane for pair in links for lane in pair}
+    isolated = [lane for lane in lanes if lane not in linked]
+    lanes = [lane for lane in lanes if lane in linked]
+
+    A_norm = normalized_adjacency(lanes, links)
+
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1) lane 단위 파싱 수행
-    print("▶ Parsing adjacency (lane-level)...")
-    A, lanes = parse_adjacency(net_xml, directed=True)
-    print(f"  • 수집된 raw lane 수: {len(lanes)}")
-
-    # 2) 실제 연결된 lane만 필터링
-    print("▶ 실제 고립 lane 필터링 중...")
-    tree_root = etree.parse(net_xml).getroot()
-    connected = set()
-    # connection 태그 순회
-    for conn in tree_root.findall('.//connection'):
-        fe, te = conn.get('from'), conn.get('to')
-        if fe.startswith(':') or te.startswith(':'):
-            continue
-
-        # from-edge의 lane들
-        from_edge_elem = tree_root.find(f".//edge[@id='{fe}']")
-        if from_edge_elem is not None:
-            for lane_elem in from_edge_elem.findall('lane'):
-                lid = lane_elem.get('id')
-                if lid in lanes:
-                    connected.add(lid)
-
-        # to-edge의 lane들
-        to_edge_elem = tree_root.find(f".//edge[@id='{te}']")
-        if to_edge_elem is not None:
-            for lane_elem in to_edge_elem.findall('lane'):
-                lid = lane_elem.get('id')
-                if lid in lanes:
-                    connected.add(lid)
-
-    # 실제 연결된 lane만 keep
-    keep_indices = [i for i, lid in enumerate(lanes) if lid in connected]
-    removed_lanes = [lid for i, lid in enumerate(lanes) if lid not in connected]
-    if removed_lanes:
-        print(f"  • 제거된 실제 고립 lane 수: {len(removed_lanes)}")
-    # 행렬과 리스트를 인덱스 기준으로 필터링
-    A = A[np.ix_(keep_indices, keep_indices)]
-    lanes = [lanes[i] for i in keep_indices]
-    print(f"  • 필터 후 남은 lane 수: {len(lanes)}")
-
-    # 3) 정규화된 인접행렬 계산
-    print("▶ 인접행렬 정규화 중...")
-    A_norm = get_normalized_adjacency(A)
-
-    # 4) 결과 저장
-    print("▶ 결과 저장 중...")
-    np.save(out_dir / "A_lane.npy", A_norm)             # NumPy 바이너리
-    A_sparse = sp.csr_matrix(A_norm)
-    sp.save_npz(out_dir / "A_lane.npz", A_sparse)        # Sparse 형식
-    # lane ID를 파일로 저장 (lanes.txt)
-    with open(out_dir / "lanes.txt", "w", encoding="utf-8") as f:
-        for lid in lanes:
-            f.write(f"{lid}\n")
-
-    # 5) 최종 검증 정보 출력
-    N_final = A_norm.shape[0]
-    nonzero_links = int(np.sum(A_norm > 0)) - N_final  # self-loop 제외
-    print(f"[완료] 저장된 파일: {out_dir}/A_lane.npy, A_lane.npz, lanes.txt")
-    print(f"  • A_norm shape: {A_norm.shape}")
-    print(f"  • self-loop 제외 nonzero link 수: {nonzero_links}")
-    print(f"  • Sample lanes: {lanes[:5]}")
+    (out_dir / 'lanes.txt').write_text(''.join(f'{lane}\n' for lane in lanes), encoding='utf-8')
+    np.save(out_dir / 'A_lane.npy', A_norm)
+    print(f"▶ 차로 {len(lanes)}개 (고립 차로 {len(isolated)}개 제외), 링크 {len(links)}개 → {out_dir}/lanes.txt, A_lane.npy")

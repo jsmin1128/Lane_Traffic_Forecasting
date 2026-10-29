@@ -7,7 +7,6 @@ torch==2.13.0+cu126
 numpy==2.5.2
 pandas==3.0.5
 pyarrow==25.0.1        # parquet 읽기
-scipy==1.18.0          # 인접행렬 저장 (sparse)
 lxml==6.1.2            # 도로망 XML 파싱
 holidays==0.103        # 주말·공휴일 플래그
 scikit-learn==1.9.0    # 평가 지표

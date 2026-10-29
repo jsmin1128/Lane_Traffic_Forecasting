@@ -5,7 +5,7 @@ build_dataset.py
 
 data/raw → processed/ 전처리를 순서대로 실행합니다 (전체 약 5분).
 
-  1) graph     도로망 → 차로 인접행렬 A_lane.npy·A_lane.npz, 차로 목록 lanes.txt   (processed/graph)
+  1) graph     도로망 → 차로 목록 lanes.txt, 정규화된 인접행렬 A_lane.npy        (processed/graph)
   2) segments  차로 → 세그먼트 매핑 lane_to_segment_id_by_edge.npy               (processed/graph)
   3) tensors   od.parquet → 날짜별 input_tensor·normalized_tensor              (processed/tensor)
   4) flags     날짜별 텐서에 주말·공휴일 플래그 채널 추가 → *_with_flag.npy       (processed/tensor)
